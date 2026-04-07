@@ -441,10 +441,11 @@ with st.spinner("🔄 Carregando e calculando comissões..."):
 # HEADER DA PÁGINA
 # ─────────────────────────────────────────────────────────────
 ts_now = datetime.now().strftime("%d/%m/%Y %H:%M")
+filename = uploaded.name if uploaded else "desconhecido"
 st.markdown(f"""
 <div class="page-header">
   <h1>💰 Relatório de Comissões</h1>
-  <p>{uploaded.name} &nbsp;·&nbsp; {len(df_calc):,} linhas &nbsp;·&nbsp; {ts_now}</p>
+  <p>{filename} &nbsp;·&nbsp; {len(df_calc):,} linhas &nbsp;·&nbsp; {ts_now}</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -781,46 +782,49 @@ with tab5:
 
 # ── TAB 6: EXPORTAR ────────────────────────────────────────────
 with tab6:
-  st.subheader("📥 Exportar")
-  ts = datetime.now().strftime("%Y%m%d_%H%M")
+  if uploaded:
+      st.subheader("📥 Exportar")
+      ts = datetime.now().strftime("%Y%m%d_%H%M")
 
-  export_dados = df_f[[c for c in [
-      "Documento","Filial","Código Item","Descrição Item","Grupo de Itens",
-      "Vendedor","Cliente","UF","Nº NF","Data Faturamento",
-      "Quantidade","Valor de Venda (Linha)","Valor Recebido (Linha)",
-      "_PctComissao","_BaseComissao","_ValorComissao",
-  ] if c in df_f.columns]].rename(columns={
-      "_PctComissao":"% Comissão",
-      "_BaseComissao":"Base Comissão",
-      "_ValorComissao":"Valor Comissão",
-  })
-
-  ec1, ec2, ec3 = st.columns(3)
-  with ec1:
-      xlsx = to_excel_bytes({
-          "Resumo_Vendedor": resumo_vend,
-          "Dados_Completos": export_dados,
-          "Detalhe_Item":    det_item,
+      export_dados = df_f[[c for c in [
+          "Documento","Filial","Código Item","Descrição Item","Grupo de Itens",
+          "Vendedor","Cliente","UF","Nº NF","Data Faturamento",
+          "Quantidade","Valor de Venda (Linha)","Valor Recebido (Linha)",
+          "_PctComissao","_BaseComissao","_ValorComissao",
+      ] if c in df_f.columns]].rename(columns={
+          "_PctComissao":"% Comissão",
+          "_BaseComissao":"Base Comissão",
+          "_ValorComissao":"Valor Comissão",
       })
-      st.download_button("📊 Excel Completo (3 abas)", data=xlsx,
-                         file_name=f"comissoes_{ts}.xlsx",
-                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                         use_container_width=True)
-  with ec2:
-      csv_r = resumo_vend.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
-      st.download_button("📄 Resumo CSV", data=csv_r,
-                         file_name=f"resumo_{ts}.csv", mime="text/csv",
-                         use_container_width=True)
-  with ec3:
-      csv_d = export_dados.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
-      st.download_button("📋 Dados Completos CSV", data=csv_d,
-                         file_name=f"dados_{ts}.csv", mime="text/csv",
-                         use_container_width=True)
 
-  st.markdown("---")
-  st.caption(f"Exportando {len(df_f):,} linhas filtradas • Gerado {ts_now}")
+      ec1, ec2, ec3 = st.columns(3)
+      with ec1:
+          xlsx = to_excel_bytes({
+              "Resumo_Vendedor": resumo_vend,
+              "Dados_Completos": export_dados,
+              "Detalhe_Item":    det_item,
+          })
+          st.download_button("📊 Excel Completo (3 abas)", data=xlsx,
+                             file_name=f"comissoes_{ts}.xlsx",
+                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             use_container_width=True)
+      with ec2:
+          csv_r = resumo_vend.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
+          st.download_button("📄 Resumo CSV", data=csv_r,
+                             file_name=f"resumo_{ts}.csv", mime="text/csv",
+                             use_container_width=True)
+      with ec3:
+          csv_d = export_dados.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
+          st.download_button("📋 Dados Completos CSV", data=csv_d,
+                             file_name=f"dados_{ts}.csv", mime="text/csv",
+                             use_container_width=True)
 
-  pv = resumo_vend.copy()
-  for c in ["Vendas","Recebido","Base","Comissao"]: pv[c] = pv[c].apply(fmt_brl)
-  pv["% Com. Médio"] = pv["% Com. Médio"].apply(pct_fmt)
-  st.dataframe(pv, use_container_width=True)
+      st.markdown("---")
+      st.caption(f"Exportando {len(df_f):,} linhas filtradas • Gerado {ts_now}")
+
+      pv = resumo_vend.copy()
+      for c in ["Vendas","Recebido","Base","Comissao"]: pv[c] = pv[c].apply(fmt_brl)
+      pv["% Com. Médio"] = pv["% Com. Médio"].apply(pct_fmt)
+      st.dataframe(pv, use_container_width=True)
+  else:
+      st.info("📤 Carregue um arquivo para ver opções de exportação.")

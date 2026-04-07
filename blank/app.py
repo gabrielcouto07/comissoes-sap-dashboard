@@ -466,16 +466,24 @@ grupos_all     = sorted(df_calc["Grupo de Itens"].dropna().unique().tolist()) if
 
 fa, fb, fc, fd, fe = st.columns([2, 2, 2, 2, 2])
 with fa:
-  sel_vend   = st.multiselect("👤 Vendedor",   vendedores_all, default=vendedores_all)
+  sel_vend = st.multiselect("👤 Vendedor", vendedores_all, default=vendedores_all)
 with fb:
-  # FIX #3 — sempre retorna lista
-  sel_filial = st.multiselect("🏢 Filial",     filiais_all,    default=filiais_all)   if filiais_all else []
+  if filiais_all:
+      sel_filial = st.multiselect("🏢 Filial", filiais_all, default=filiais_all)
+  else:
+      sel_filial = []
 with fc:
-  sel_uf     = st.multiselect("📍 UF",         uf_all,         default=uf_all)        if uf_all     else []
+  if uf_all:
+      sel_uf = st.multiselect("📍 UF", uf_all, default=uf_all)
+  else:
+      sel_uf = []
 with fd:
-  sel_doc    = st.multiselect("📄 Documento",  docs_all,       default=docs_all)
+  sel_doc = st.multiselect("📄 Documento", docs_all, default=docs_all)
 with fe:
-  sel_grupo  = st.multiselect("📦 Grupo",      grupos_all,     default=grupos_all)    if grupos_all else []
+  if grupos_all:
+      sel_grupo = st.multiselect("📦 Grupo", grupos_all, default=grupos_all)
+  else:
+      sel_grupo = []
 
 f2a, f2b = st.columns([3, 3])
 with f2a:
@@ -567,13 +575,8 @@ resumo_vend["% Recebido"] = (
   resumo_vend["Recebido"] / resumo_vend["Vendas"].replace(0, np.nan) * 100
 ).round(2).fillna(0)
 
-# Validar se 'Descrição Item' existe antes de usar (ERRO #2)
-groupby_cols = ["Código Item"]
-if "Descrição Item" in df_f.columns:
-    groupby_cols.append("Descrição Item")
-
 det_item = (
-  df_f.groupby(groupby_cols)
+  df_f.groupby(["Código Item"])
   .agg(
       Qtd_Vendedores=("Vendedor",                "nunique"),
       Qtd           =("Quantidade",              "sum"),
@@ -696,13 +699,8 @@ with tab2:
       m3.metric("Base",         fmt_brl(df_v["_BaseComissao"].sum()))
       m4.metric("Comissão",     fmt_brl(df_v["_ValorComissao"].sum()))
 
-      # Validar se 'Descrição Item' existe antes de usar (ERRO #3)
-      groupby_cols_v = ["Código Item","_PctComissao"]
-      if "Descrição Item" in df_v.columns:
-          groupby_cols_v.insert(1, "Descrição Item")
-      
       det_v = (
-          df_v.groupby(groupby_cols_v)
+          df_v.groupby(["Código Item","_PctComissao"])
           .agg(Qtd=("Quantidade","sum"),
                Vendas=("Valor de Venda (Linha)","sum"),
                Recebido=("Valor Recebido (Linha)","sum"),
@@ -726,20 +724,16 @@ with tab2:
 
 # ── TAB 3: POR ITEM ────────────────────────────────────────────
 with tab3:
-  # Validar se det_item não está vazio (ERRO #4)
-  if det_item.empty:
-      st.warning("⚠️ Nenhum item encontrado para análise.")
-  else:
-      srch_item = st.text_input("🔍 Buscar item (código ou descrição)")
-      di = det_item.copy()
-      if srch_item:
-          mask = di.astype(str).apply(
-              lambda col: col.str.contains(srch_item, case=False, na=False)).any(axis=1)
-          di = di[mask]
-      st.caption(f"{len(di)} itens distintos")
-      did = di.copy()
-      for c in ["Vendas","Base","Comissao"]: did[c] = did[c].apply(fmt_brl)
-      st.dataframe(did, use_container_width=True, height=480)
+  srch_item = st.text_input("🔍 Buscar item (código ou descrição)")
+  di = det_item.copy()
+  if srch_item:
+      mask = di.astype(str).apply(
+          lambda col: col.str.contains(srch_item, case=False, na=False)).any(axis=1)
+      di = di[mask]
+  st.caption(f"{len(di)} itens distintos")
+  did = di.copy()
+  for c in ["Vendas","Base","Comissao"]: did[c] = did[c].apply(fmt_brl)
+  st.dataframe(did, use_container_width=True, height=480)
 
 
 # ── TAB 4: DADOS COMPLETOS ─────────────────────────────────────

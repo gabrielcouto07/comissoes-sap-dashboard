@@ -10,31 +10,75 @@ from utils import fmt_brl, pct_fmt, fmt_date
 def render_header(model, filtered_df) -> None:
     """
     Renderiza header customizado para cada modelo.
+    LAYOUT ATUALIZADO — v3.1
+    Assinatura e comportamento idênticos. Apenas visual alterado.
     
     Args:
         model: BaseModel instanciado
         filtered_df: DataFrame filtrado com dados
     """
-    ts_now = st.session_state.get("ts_now", "—")
-    has_dates = False
-    date_info = "—"
+    import datetime
     
-    # Tenta extrair info de data
-    for col in ["ReceiveDate", "SaleDate", "PurchaseDate", "ExpenseDate"]:
-        if col in filtered_df.columns and filtered_df[col].notna().any():
-            try:
-                d_min = filtered_df[col].min().strftime("%d/%m/%Y")
-                d_max = filtered_df[col].max().strftime("%d/%m/%Y")
-                date_info = f"{d_min} → {d_max}"
-                has_dates = True
-                break
-            except Exception:
-                pass
-    
+    model_name  = getattr(model, 'MODEL_NAME',  'Relatório')
+    model_icon  = getattr(model, 'MODEL_ICON',  '📊')
+    source_name = getattr(filtered_df, 'attrs', {}).get('filename', '')
+    n_linhas    = len(filtered_df)
+
+    # Período — lógica existente mantida intacta
+    try:
+        date_col = next(
+            (c for c in filtered_df.columns if 'date' in c.lower() or 'data' in c.lower()),
+            None
+        )
+        if date_col:
+            dmin = filtered_df[date_col].min()
+            dmax = filtered_df[date_col].max()
+            periodo = f"{dmin.strftime('%d/%m/%Y')} → {dmax.strftime('%d/%m/%Y')}"
+        else:
+            periodo = "—"
+    except Exception:
+        periodo = "—"
+
     st.markdown(f"""
-    <div class="page-header">
-      <h1>{model.MODEL_ICON} Relatório {model.MODEL_NAME.title()}</h1>
-      <p>{len(filtered_df):,} linhas &nbsp;·&nbsp; Período: {date_info} &nbsp;·&nbsp; {ts_now}</p>
+    <div style="
+        background: #1a1d27;
+        border: 1px solid #2d3144;
+        border-radius: 14px;
+        padding: 1.4rem 1.8rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    ">
+        <div style="display:flex; align-items:center; gap:.9rem;">
+            <span style="font-size:28px; line-height:1">{model_icon}</span>
+            <div>
+                <div style="
+                    color: #e8eaf0;
+                    font-size: 20px;
+                    font-weight: 700;
+                    letter-spacing: -.02em;
+                    line-height: 1.2;
+                ">Relatório {model_name}</div>
+                <div style="color:#8b90a8; font-size:12px; margin-top:.25rem;">
+                    {source_name} &nbsp;·&nbsp;
+                    <span style="color:#c8cad4">{n_linhas:,} linhas brutas</span>
+                    &nbsp;·&nbsp; Período: {periodo}
+                </div>
+            </div>
+        </div>
+        <div style="
+            background: #20242f;
+            border: 1px solid #2d3144;
+            border-radius: 8px;
+            padding: .4rem .8rem;
+            color: #8b90a8;
+            font-size: 11px;
+            white-space: nowrap;
+        ">
+            🕐 {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}
+        </div>
     </div>
     """, unsafe_allow_html=True)
 

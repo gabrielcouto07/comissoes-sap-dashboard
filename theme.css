@@ -1,0 +1,358 @@
+/* ============================================================
+   theme.css — Power BI Automático / Scientific Dental
+   Versão: 3.1 — Layout Only Fix
+   Regra: Apenas visual. Nenhuma função é afetada.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ── RESET DE TIPOGRAFIA ─────────────────────────────────── */
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* ── FUNDO PRINCIPAL ─────────────────────────────────────── */
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewBlockContainer"] {
+    background-color: #0f1117 !important;
+}
+
+/* ── HEADER DO STREAMLIT (barra azul padrão) ─────────────── */
+[data-testid="stHeader"] {
+    background-color: #0f1117 !important;
+    border-bottom: 1px solid #2d3144 !important;
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] > div:first-child {
+    background-color: #1a1d27 !important;
+    border-right: 1px solid #2d3144 !important;
+}
+
+/* ── SIDEBAR — textos ────────────────────────────────────── */
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stRadio label,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span {
+    color: #c8cad4 !important;
+}
+
+/* ── TEXTO GERAL ─────────────────────────────────────────── */
+p, span, div, label, h1, h2, h3, h4, h5, h6 {
+    color: #e8eaf0;
+}
+
+/* ── KPI CARDS (st.metric) ───────────────────────────────── */
+[data-testid="metric-container"] {
+    background-color: #1a1d27 !important;
+    border: 1px solid #2d3144 !important;
+    border-radius: 12px !important;
+    padding: 1rem 1.25rem !important;
+    font-variant-numeric: tabular-nums lining-nums !important;
+}
+[data-testid="metric-container"] [data-testid="stMetricLabel"] {
+    color: #8b90a8 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .06em !important;
+}
+[data-testid="metric-container"] [data-testid="stMetricValue"] {
+    color: #e8eaf0 !important;
+    font-size: 26px !important;
+    font-weight: 700 !important;
+}
+[data-testid="stMetricDelta"] svg { display: none !important; }
+
+/* ── TABS (abas) ──────────────────────────────────────────── */
+[data-testid="stTabs"] [role="tablist"] {
+    border-bottom: 1px solid #2d3144 !important;
+    gap: .25rem !important;
+}
+[data-testid="stTabs"] button[role="tab"] {
+    background: transparent !important;
+    color: #8b90a8 !important;
+    border: none !important;
+    border-radius: 6px 6px 0 0 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: .5rem 1rem !important;
+    transition: color .15s ease, background .15s ease !important;
+}
+[data-testid="stTabs"] button[role="tab"]:hover {
+    color: #e8eaf0 !important;
+    background: #20242f !important;
+}
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+    color: #4f8ef7 !important;
+    border-bottom: 2px solid #4f8ef7 !important;
+    background: transparent !important;
+}
+
+/* ── DATAFRAME / TABELAS ─────────────────────────────────── */
+[data-testid="stDataFrame"],
+.stDataFrame {
+    background: #1a1d27 !important;
+    border: 1px solid #2d3144 !important;
+    border-radius: 8px !important;
+}
+
+/* ── FILE UPLOADER ───────────────────────────────────────── */
+[data-testid="stFileUploaderDropzone"] {
+    background-color: #1a1d27 !important;
+    border: 2px dashed #2d3144 !important;
+    border-radius: 12px !important;
+    color: #8b90a8 !important;
+}
+[data-testid="stFileUploaderDropzone"]:hover {
+    border-color: #4f8ef7 !important;
+}
+
+/* ── SELECTBOX / RADIO / INPUTS ──────────────────────────── */
+[data-testid="stSelectbox"] > div,
+.stTextInput > div > div,
+.stNumberInput > div > div {
+    background-color: #20242f !important;
+    border-color: #2d3144 !important;
+    border-radius: 8px !important;
+    color: #e8eaf0 !important;
+}
+.stRadio [data-testid="stMarkdownContainer"] p {
+    color: #c8cad4 !important;
+}
+
+/* ── BOTÕES ──────────────────────────────────────────────── */
+.stButton > button {
+    background-color: #20242f !important;
+    border: 1px solid #2d3144 !important;
+    border-radius: 8px !important;
+    color: #e8eaf0 !important;
+    font-weight: 500 !important;
+    transition: background .15s ease, border-color .15s ease !important;
+}
+.stButton > button:hover {
+    background-color: #2d3144 !important;
+    border-color: #4f8ef7 !important;
+    color: #e8eaf0 !important;
+}
+.stButton > button[kind="primary"] {
+    background-color: #4f8ef7 !important;
+    border-color: #4f8ef7 !important;
+    color: #fff !important;
+}
+.stButton > button[kind="primary"]:hover {
+    background-color: #3a7be0 !important;
+}
+
+/* ── EXPANDER ────────────────────────────────────────────── */
+[data-testid="stExpander"] {
+    background-color: #1a1d27 !important;
+    border: 1px solid #2d3144 !important;
+    border-radius: 8px !important;
+}
+
+/* ── SCROLLBAR ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0f1117; }
+::-webkit-scrollbar-thumb { background: #2d3144; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #4f8ef7; }
+
+/* ── DIVISOR (st.divider) ────────────────────────────────── */
+hr { border-color: #2d3144 !important; }
+
+/* ── ÁREA DE CONTEÚDO PRINCIPAL ──────────────────────────── */
+section[data-testid="stSidebar"] + div {
+    background-color: #0f1117 !important;
+}
+
+/* ── ALERTAS / INFO / SUCCESS / WARNING ──────────────────── */
+[data-testid="stAlert"] {
+    background-color: #1a1d27 !important;
+    border-radius: 8px !important;
+    border-left-width: 3px !important;
+}
+
+/* ── PROGRESS BAR ────────────────────────────────────────── */
+[data-testid="stProgressBar"] > div {
+    background-color: #2d3144 !important;
+    border-radius: 4px !important;
+}
+[data-testid="stProgressBar"] > div > div {
+    background-color: #4f8ef7 !important;
+}
+
+[role="checkbox"], [role="radio"] {
+  accent-color: var(--primary) !important;
+}
+
+[data-testid*="AlertContainer"] {
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--primary);
+}
+
+.stAlert--info {
+  background: rgba(34, 211, 238, 0.1);
+  border-left-color: var(--info);
+  color: var(--text);
+}
+
+.stAlert--success {
+  background: rgba(52, 201, 126, 0.1);
+  border-left-color: var(--success);
+  color: var(--text);
+}
+
+.stAlert--warning {
+  background: rgba(245, 166, 35, 0.1);
+  border-left-color: var(--warning);
+  color: var(--text);
+}
+
+.stAlert--error {
+  background: rgba(224, 92, 92, 0.1);
+  border-left-color: var(--danger);
+  color: var(--text);
+}
+
+.stMarkdown {
+  color: var(--text);
+}
+
+.stMarkdown h1 {
+  font-size: 32px;
+  margin-bottom: 0.5rem;
+}
+
+.stMarkdown h2 {
+  font-size: 24px;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.stMarkdown h3 {
+  font-size: 18px;
+  color: var(--primary);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.stMarkdown code {
+  background: var(--surface2);
+  color: var(--info);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.stCaption {
+  color: var(--muted) !important;
+  font-size: 12px;
+}
+
+.stHelp {
+  color: var(--muted) !important;
+  font-size: 12px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface3);
+  border-radius: 4px;
+  transition: var(--transition);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+
+a {
+  color: var(--primary) !important;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+a:hover {
+  color: var(--info) !important;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.badge--primary {
+  background: rgba(79, 142, 247, 0.15);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.badge--success {
+  background: rgba(52, 201, 126, 0.15);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.badge--danger {
+  background: rgba(224, 92, 92, 0.15);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.separator {
+  border-top: 1px solid var(--border);
+  margin: 1rem 0;
+  padding-top: 0.8rem;
+}
+
+.separator-title {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  transition: var(--transition);
+}
+
+.card:hover {
+  border-color: var(--primary);
+  background: var(--surface2);
+}
+
+@media (max-width: 640px) {
+  h1 { font-size: 24px; }
+  h2 { font-size: 18px; }
+  [data-testid="stMetricValue"] {
+    font-size: 20px;
+  }
+}

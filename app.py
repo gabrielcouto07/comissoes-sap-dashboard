@@ -1,48 +1,51 @@
-"""
-APP.PY — Power BI Automático Multi-Modelos v2.0
-════════════════════════════════════════════════
-Arquivo único completo (~1200+ linhas).
-
-Arquitetura:
-• COMISSÃO → lógica completa inline (filtros, dedup, KPIs, 7 abas)
-• VENDAS   → delega para models/vendas_model.py (render_tabs)
-
-Fluxo:
-1. Upload arquivo
-2. Auto-detectar modelo (por COL_MAP aliases)
-3. Confirmar ou trocar modelo
-4. COMISSÃO: normalize → filtros → dedup → aggs → KPIs → 7 abas
-   VENDAS:   VendasModel.load() → filtros → render_tabs()
-5. Exportar
-
-Correções aplicadas:
-• FIX #1 — load_file usa getattr(f,'name','') → sem AttributeError
-• FIX #2 — _cached_load usa _Fakefile → compatível com @st.cache_data
-• FIX #3 — add_dedup_flags tem guard de colunas existentes
-• FIX #4 — detect_model usa aliases (não canonicals)
-• FIX #5 — "Mostrar dados" removido de todas as abas
-• FIX #6 — render_tabs VENDAS recebe filtered_df + aggs corretos
-• UI      — header temático por modelo, filtros colapsáveis
-"""
-
 import io
 import re
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 warnings.filterwarnings("ignore")
 
+# ════════════════════════════════════════════════════════════════════════════
+# INJEÇÃO DE CSS — DEVE SER A PRIMEIRA COISA DO APP
+# ════════════════════════════════════════════════════════════════════════════
+
+def _inject_css():
+    """Injeta theme.css no início da renderização — antes de qualquer elemento."""
+    css_path = Path(__file__).parent / "theme.css"
+    if css_path.exists():
+        with open(css_path, encoding="utf-8") as f:
+            css_content = f.read()
+        st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
+
+_inject_css()
+
+# ════════════════════════════════════════════════════════════════════════════
+# IMPORTS: Design System + UI Components
+# ════════════════════════════════════════════════════════════════════════════
+
+from config.colors import PALETTE, CHART_COLORS
+from templates.ui import (
+    load_theme,
+    kpi_card,
+    render_kpi_row,
+    apply_chart_style,
+    render_header,
+    render_period_filter,
+    render_separator,
+    detect_time_granularity,
+)
+
 # Único import externo: VendasModel (lógica separada por complexidade)
 from models.vendas_model import VendasModel
 
-# ═════════════════════════════════════════════════════════════════════════
 # FASE 1: FUNÇÕES DE FILTROS NOVOS (Sidebar Compacto)
-# ═════════════════════════════════════════════════════════════════════════
 
 def render_filtros_sidebar_vendas(df: pd.DataFrame):
     """
@@ -190,88 +193,95 @@ st.set_page_config(
 )
 
 # ══════════════════════════════════════════════════════════════════════
-# SEÇÃO 2 — CSS GLOBAL
+# SEÇÃO 1B — LOGO NA SIDEBAR
 # ══════════════════════════════════════════════════════════════════════
 
-st.markdown("""
-<style>
-/* ── Sidebar ───────────────────────────────────────────────────── */
-[data-testid="stSidebar"] {
-  background: linear-gradient(180deg,#0f172a 0%,#1e293b 60%,#0f172a 100%);
-}
-[data-testid="stSidebar"] * { color:#e2e8f0 !important; }
-[data-testid="stSidebar"] hr { border-color:#334155 !important; }
-[data-testid="stSidebar"] .stRadio label { font-size:.85rem !important; }
+import base64
 
-/* ── Headers ───────────────────────────────────────────────────── */
-.page-header {
-  border-radius:16px; padding:1.5rem 2rem; color:white;
-  margin-bottom:1.5rem; box-shadow:0 4px 24px rgba(0,0,0,.3);
-}
-.page-header h1 { color:white; margin:0; font-size:1.75rem; font-weight:800; }
-.page-header p  { color:rgba(255,255,255,.78); margin:.3rem 0 0; font-size:.85rem; }
+def _render_sidebar_logo():
+    """Renderiza logo + nome da aplicação no topo da sidebar."""
+    logo_path = Path(__file__).parent / "logo.png"
 
-/* ── KPI Cards — Comissão (azul/indigo) ────────────────────────── */
-.kpi-card {
-  background:white; border-radius:12px; padding:.9rem 1.1rem;
-  border-left:4px solid; box-shadow:0 2px 12px rgba(0,0,0,.08);
-  transition:transform .15s; margin-bottom:4px;
-}
-.kpi-card:hover { transform:translateY(-2px); }
-.kpi-card.blue   { border-color:#3b82f6; }
-.kpi-card.green  { border-color:#22c55e; }
-.kpi-card.purple { border-color:#a855f7; }
-.kpi-card.amber  { border-color:#f59e0b; }
-.kpi-card.teal   { border-color:#14b8a6; }
-.kpi-card.rose   { border-color:#f43f5e; }
-.kpi-card.sky    { border-color:#0ea5e9; }
-.kpi-card.indigo { border-color:#6366f1; }
-.kpi-title {
-  font-size:.63rem; font-weight:700; color:#64748b;
-  text-transform:uppercase; letter-spacing:.08em; margin:0;
-}
-.kpi-value { font-size:1.25rem; font-weight:800; color:#0f172a;
-           margin:.12rem 0 0; line-height:1.2; }
-.kpi-sub   { font-size:.62rem; color:#94a3b8; margin:.06rem 0 0; }
+    if logo_path.exists():
+        b64 = base64.b64encode(logo_path.read_bytes()).decode()
+        st.sidebar.markdown(f"""
+        <div style="
+            padding: 1.4rem 1rem 1rem;
+            border-bottom: 1px solid #2d3144;
+            margin-bottom: 1.2rem;
+        ">
+            <img
+                src="data:image/png;base64,{b64}"
+                style="
+                    width: 100%;
+                    max-height: 52px;
+                    object-fit: contain;
+                    object-position: left center;
+                "
+                alt="Scientific Dental"
+            />
+            <div style="
+                color: #8b90a8;
+                font-size: 10px;
+                margin-top: .6rem;
+                text-transform: uppercase;
+                letter-spacing: .1em;
+            ">Relatório Analítico · SAP B1</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-/* ── KPI Cards — Vendas (verde) ────────────────────────────────── */
-.vendas-kpi {
-  background:white; border-radius:12px; padding:.9rem 1.1rem;
-  border-left:4px solid; box-shadow:0 2px 12px rgba(0,0,0,.07);
-  transition:transform .15s; margin-bottom:4px;
-}
-.vendas-kpi:hover { transform:translateY(-2px); }
-.vkpi-emerald { border-color:#059669; }
-.vkpi-blue    { border-color:#2563eb; }
-.vkpi-teal    { border-color:#0d9488; }
-.vkpi-violet  { border-color:#7c3aed; }
-.vkpi-green   { border-color:#16a34a; }
-.vkpi-amber   { border-color:#d97706; }
+    else:
+        # Fallback se logo.png não for encontrado
+        st.sidebar.markdown(f"""
+        <div style="
+            padding: 1rem;
+            border-bottom: 1px solid #2d3144;
+            margin-bottom: 1.2rem;
+            display: flex; align-items: center; gap: .75rem;
+        ">
+            <div style="
+                width:38px; height:38px; border-radius:9px;
+                background:#4f8ef7; display:flex; align-items:center;
+                justify-content:center; color:#fff;
+                font-size:17px; font-weight:700; flex-shrink:0;
+            ">S</div>
+            <div>
+                <div style="color:#e8eaf0; font-size:14px; font-weight:600">
+                    Scientific Dental
+                </div>
+                <div style="color:#8b90a8; font-size:11px">
+                    Relatório Analítico · SAP B1
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-/* ── Filter box & Expander ─────────────────────────────────────── */
-.filter-box {
-  background:#f8fafc; border:1px solid #e2e8f0;
-  border-radius:12px; padding:1rem 1.2rem; margin-bottom:1.2rem;
-}
-.stExpander {
-  border:1px solid #e2e8f0 !important;
-  border-radius:12px !important;
-  background:#f8fafc !important;
-}
-
-/* ── Detection badge ───────────────────────────────────────────── */
-.detect-badge {
-  display:inline-block; padding:.2rem .6rem; border-radius:6px;
-  font-size:.72rem; font-weight:700; letter-spacing:.04em;
-}
-.detect-high   { background:#dcfce7; color:#166534; }
-.detect-medium { background:#fef9c3; color:#854d0e; }
-.detect-low    { background:#fee2e2; color:#991b1b; }
-</style>
-""", unsafe_allow_html=True)
+_render_sidebar_logo()
 
 # ══════════════════════════════════════════════════════════════════════
-# SEÇÃO 3 — HELPERS GENÉRICOS
+# SEÇÃO 1C — SEPARADORES DE SEÇÃO NA SIDEBAR
+# ══════════════════════════════════════════════════════════════════════
+
+def _sidebar_section(title: str):
+    """Separador visual de seção na sidebar — somente layout."""
+    st.sidebar.markdown(f"""
+    <div style="
+        border-top: 1px solid #2d3144;
+        margin: 1rem 0 .7rem;
+        padding-top: .7rem;
+    ">
+        <span style="
+            color: #8b90a8;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        ">{title}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════
+# SEÇÃO 2 — HELPERS GENÉRICOS
 # ══════════════════════════════════════════════════════════════════════
 
 def parse_num(v) -> float:
@@ -680,19 +690,69 @@ uploaded = st.sidebar.file_uploader(
 
 if uploaded is None:
   st.markdown("""
-  <div class="page-header" style="background:linear-gradient(
-       135deg,#0f172a 0%,#1e40af 50%,#7c3aed 100%)">
-    <h1>📊 Power BI Automático</h1>
-    <p>Plataforma de análise multi-modelos com detecção automática de layout</p>
+  <div style="
+      background: #1a1d27;
+      border: 1px solid #2d3144;
+      border-radius: 14px;
+      padding: 1.4rem 1.8rem;
+      margin-bottom: 1.5rem;
+  ">
+      <h1 style="color: #e8eaf0; margin:0; font-size:24px; font-weight:700;">📊 Power BI Automático</h1>
+      <p style="color: #8b90a8; margin: .4rem 0 0; font-size:14px;">Plataforma de análise multi-modelos com detecção automática de layout</p>
   </div>
   """, unsafe_allow_html=True)
 
   c1, c2, c3 = st.columns(3)
-  c1.info("**💰 Comissões**\n\nDeduplicação inteligente de NFs · 7 perspectivas analíticas")
-  c2.info("**📈 Vendas SAP**\n\nQuery 'Vendas por Item' com 35+ campos · KPIs + UF + Tipo")
-  c3.info("**🤖 Auto-detect**\n\nModelo identificado automaticamente pelo layout do arquivo")
+  
+  with c1:
+      st.markdown("""
+      <div style="
+          background:#1a1d27; border:1px solid #2d3144;
+          border-radius:12px; padding:1.2rem 1.4rem; height:100%;
+      ">
+          <div style="font-size:22px; margin-bottom:.6rem">💰</div>
+          <div style="color:#e8eaf0; font-size:15px; font-weight:600; margin-bottom:.4rem">
+              Comissões
+          </div>
+          <div style="color:#8b90a8; font-size:13px; line-height:1.5">
+              Deduplicação inteligente de NFs · 7 perspectivas analíticas
+          </div>
+      </div>
+      """, unsafe_allow_html=True)
 
-  st.markdown("---")
+  with c2:
+      st.markdown("""
+      <div style="
+          background:#1a1d27; border:1px solid #2d3144;
+          border-radius:12px; padding:1.2rem 1.4rem; height:100%;
+      ">
+          <div style="font-size:22px; margin-bottom:.6rem">📋</div>
+          <div style="color:#e8eaf0; font-size:15px; font-weight:600; margin-bottom:.4rem">
+              Vendas SAP
+          </div>
+          <div style="color:#8b90a8; font-size:13px; line-height:1.5">
+              Query 'Vendas por Item' · 35+ campos · KPIs + UF + Tipo
+          </div>
+      </div>
+      """, unsafe_allow_html=True)
+
+  with c3:
+      st.markdown("""
+      <div style="
+          background:#1a1d27; border:1px solid #2d3144;
+          border-radius:12px; padding:1.2rem 1.4rem; height:100%;
+      ">
+          <div style="font-size:22px; margin-bottom:.6rem">🤖</div>
+          <div style="color:#e8eaf0; font-size:15px; font-weight:600; margin-bottom:.4rem">
+              Auto-detect
+          </div>
+          <div style="color:#8b90a8; font-size:13px; line-height:1.5">
+              Modelo identificado automaticamente pelo layout do arquivo
+          </div>
+      </div>
+      """, unsafe_allow_html=True)
+
+  st.markdown("<div style='height:.5rem'></div>", unsafe_allow_html=True)
   st.markdown("#### 🎯 Modelos Disponíveis")
   for key, info in MODEL_INFO.items():
       with st.expander(f"{info['icon']} **{key}** — {info['description']}"):
@@ -1029,7 +1089,7 @@ if model_selected == "COMISSAO":
           .rename(columns={"SlpName": "Vendedor"})
       )
 
-  # ── 13H: KPI CARDS ────────────────────────────────────────────────
+  # ── 13H: KPI CARDS (Novo Design System) ────────────────────────────
   total_vendas   = _lt["LineTotal"].sum()
   total_itens    = _lt["Quantity"].sum()
   total_nfs      = ff["InvDocNum"].nunique()
@@ -1038,27 +1098,55 @@ if model_selected == "COMISSAO":
   media_pct      = ff["CommissionPct"].mean() if len(ff) else 0
   n_vendedores   = ff["SlpName"].nunique()
 
+  # KPIs com design system (com delta dinamico)
   kpis_comm = [
-      ("💼 Vendas",    fmt_brl(total_vendas),   "indigo", f"{total_nfs} NFs"),
-      ("📦 Itens",     f"{int(total_itens):,}".replace(",","."),
-       "sky", f"{len(ff):,} linhas".replace(",",".")),
-      ("📄 NFs",       f"{total_nfs}",            "blue",  f"{n_vendedores} vendedores"),
-      ("💳 Recebido",  fmt_brl(total_recebido),  "teal",  "sem duplicata por item"),
-      ("💰 Comissão",  fmt_brl(total_comissao),  "green", "campo final"),
-      ("📊 % Médio",   pct_fmt(media_pct),        "amber", "média simples"),
+      {
+          "label": "Vendas",
+          "value": fmt_brl(total_vendas),
+          "icon": "💼",
+          "prefix": "R$",
+          "delta": None,
+          "color": "primary",
+      },
+      {
+          "label": "Itens",
+          "value": f"{int(total_itens):,}".replace(",","."),
+          "icon": "📦",
+          "prefix": "",
+          "color": "info",
+      },
+      {
+          "label": "NFs",
+          "value": f"{total_nfs}",
+          "icon": "📄",
+          "prefix": "",
+          "color": "warning",
+      },
+      {
+          "label": "Recebido",
+          "value": fmt_brl(total_recebido),
+          "icon": "💳",
+          "prefix": "R$",
+          "color": "success",
+      },
+      {
+          "label": "Comissão",
+          "value": fmt_brl(total_comissao),
+          "icon": "💰",
+          "prefix": "R$",
+          "color": "primary",
+      },
+      {
+          "label": "% Médio",
+          "value": pct_fmt(media_pct),
+          "icon": "📊",
+          "prefix": "",
+          "color": "info",
+      },
   ]
-  kpi_cols = st.columns(6)
-  for (label, value, color, sub), col in zip(kpis_comm, kpi_cols):
-      with col:
-          st.markdown(f"""
-          <div class="kpi-card {color}">
-            <p class="kpi-title">{label}</p>
-            <p class="kpi-value">{value}</p>
-            <p class="kpi-sub">{sub}</p>
-          </div>
-          """, unsafe_allow_html=True)
+  render_kpi_row(kpis_comm, layout=[2, 1.5, 1.5, 2, 2, 1.5])
 
-  st.markdown("---")
+  render_separator()
 
   # ── 13I: TABS ─────────────────────────────────────────────────────
   t_dash, t_vend, t_fil, t_item, t_cli, t_det, t_exp = st.tabs([
@@ -1075,23 +1163,23 @@ if model_selected == "COMISSAO":
           cv, x="Comissao", y="Vendedor", orientation="h",
           title=f"💰 Top {top_n} vendedores por comissão",
           text=cv["Comissao"].apply(fmt_brl),
-          color="Comissao", color_continuous_scale=["#bfdbfe","#1d4ed8"],
+          color="Comissao", color_continuous_scale=CHART_COLORS[:2],
           labels={"Comissao":"R$","Vendedor":""},
       )
       fig_v.update_traces(textposition="outside")
-      fig_v.update_layout(showlegend=False, coloraxis_showscale=False,
-                           height=420, plot_bgcolor="white", paper_bgcolor="white",
-                           margin=dict(r=80))
+      fig_v = apply_chart_style(fig_v, title=f"💰 Top {top_n} vendedores por comissão", height=420)
+      fig_v.update_layout(coloraxis_showscale=False, margin=dict(r=80), showlegend=False)
       c1.plotly_chart(fig_v, use_container_width=True)
 
       pie_data = resumo_vend[resumo_vend["Comissao"] > 0].head(top_n)
       fig_pie = px.pie(
           pie_data, values="Comissao", names="Vendedor", hole=0.52,
           title="🥧 Participação da comissão por vendedor",
-          color_discrete_sequence=px.colors.qualitative.Set3,
+          color_discrete_sequence=CHART_COLORS,
       )
       fig_pie.update_traces(textinfo="percent+label")
-      fig_pie.update_layout(height=420, showlegend=False, paper_bgcolor="white")
+      fig_pie = apply_chart_style(fig_pie, title="🥧 Participação da comissão por vendedor", height=420)
+      fig_pie.update_layout(showlegend=False)
       c2.plotly_chart(fig_pie, use_container_width=True)
 
       if not resumo_mes.empty:
@@ -1103,7 +1191,7 @@ if model_selected == "COMISSAO":
               markers=True, title="📈 Evolução mensal",
               labels={"value":"R$","variable":"Indicador","ReceiveMonth":"Mês"},
           )
-          fig_mes.update_layout(height=340, plot_bgcolor="white", paper_bgcolor="white")
+          fig_mes = apply_chart_style(fig_mes, title="📈 Evolução mensal", height=340)
           st.plotly_chart(fig_mes, use_container_width=True)
 
       d1, d2 = st.columns(2)
@@ -1113,12 +1201,12 @@ if model_selected == "COMISSAO":
           title=f"🏆 Top {top_n} itens por comissão",
           text=top_items["Comissao"].apply(fmt_brl),
           hover_data={"Descricao": True},
-          color="Comissao", color_continuous_scale=["#fde68a","#b45309"],
+          color="Comissao", color_continuous_scale=CHART_COLORS[:2],
           labels={"Comissao":"R$","ItemCode":""},
       )
       fig_items.update_traces(textposition="outside")
-      fig_items.update_layout(showlegend=False, coloraxis_showscale=False,
-                                height=400, plot_bgcolor="white", paper_bgcolor="white")
+      fig_items = apply_chart_style(fig_items, title=f"🏆 Top {top_n} itens por comissão", height=400)
+      fig_items.update_layout(coloraxis_showscale=False, showlegend=False)
       d1.plotly_chart(fig_items, use_container_width=True)
 
       if len(resumo_vend) > 1:
@@ -1128,8 +1216,8 @@ if model_selected == "COMISSAO":
               title="🎯 Vendas × Comissão por vendedor",
               labels={"Vendas":"Vendas (R$)","Comissao":"Comissão (R$)"},
           )
-          fig_sc.update_layout(height=400, plot_bgcolor="white",
-                                 paper_bgcolor="white", showlegend=False)
+          fig_sc = apply_chart_style(fig_sc, title="🎯 Vendas × Comissão por vendedor", height=400)
+          fig_sc.update_layout(showlegend=False)
           d2.plotly_chart(fig_sc, use_container_width=True)
 
   # ── TAB: VENDEDORES ───────────────────────────────────────────────
@@ -1205,13 +1293,13 @@ if model_selected == "COMISSAO":
           chart_f, x="Comissao", y="Filial", orientation="h",
           title="💰 Comissão por filial",
           text=chart_f["Comissao"].apply(fmt_brl),
-          color="Comissao", color_continuous_scale=["#c4b5fd","#4f46e5"],
+          color="Comissao", color_continuous_scale=CHART_COLORS[:2],
           labels={"Comissao":"R$","Filial":""},
       )
       fig_f.update_traces(textposition="outside")
-      fig_f.update_layout(showlegend=False, coloraxis_showscale=False,
-                            height=max(320, len(chart_f)*60),
-                            plot_bgcolor="white", paper_bgcolor="white")
+      fig_f = apply_chart_style(fig_f, title="💰 Comissão por filial", 
+                                 height=max(320, len(chart_f)*60))
+      fig_f.update_layout(coloraxis_showscale=False, showlegend=False)
       st.plotly_chart(fig_f, use_container_width=True)
 
       filial_vendor = (
@@ -1223,7 +1311,7 @@ if model_selected == "COMISSAO":
           barmode="stack", title="💼 Comissão por filial × vendedor",
           labels={"BranchName":"Filial","Comissao":"R$","SlpName":"Vendedor"},
       )
-      fig_stack.update_layout(height=380, plot_bgcolor="white", paper_bgcolor="white")
+      fig_stack = apply_chart_style(fig_stack, title="💼 Comissão por filial × vendedor", height=380)
       st.plotly_chart(fig_stack, use_container_width=True)
 
       disp_f = resumo_filial.copy()
@@ -1255,12 +1343,12 @@ if model_selected == "COMISSAO":
           top_cli, x="Comissao", y="Cliente", orientation="h",
           title=f"🏥 Top {top_n} clientes por comissão",
           text=top_cli["Comissao"].apply(fmt_brl),
-          color="Comissao", color_continuous_scale=["#fecaca","#be123c"],
+          color="Comissao", color_continuous_scale=CHART_COLORS[:2],
           labels={"Comissao":"R$","Cliente":""},
       )
       fig_cli.update_traces(textposition="outside")
-      fig_cli.update_layout(showlegend=False, coloraxis_showscale=False,
-                             height=420, plot_bgcolor="white", paper_bgcolor="white")
+      fig_cli = apply_chart_style(fig_cli, title=f"🏥 Top {top_n} clientes por comissão", height=420)
+      fig_cli.update_layout(coloraxis_showscale=False, showlegend=False)
       st.plotly_chart(fig_cli, use_container_width=True)
 
       cli_d = resumo_cliente.copy()

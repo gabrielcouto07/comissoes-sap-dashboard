@@ -310,10 +310,117 @@ a:hover {
   color: var(--primary);
 }
 
+/* ── KPI CARD CUSTOMIZADO ────────────────────────────────── */
+.kpi-card {
+  background: #1a1d27;
+  border: 2px solid #4f8ef7;
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.kpi-card:hover {
+  border-color: #7c3aed;
+  background: #20242f;
+  box-shadow: 0 4px 12px rgba(79, 142, 247, 0.15);
+}
+
+.kpi-card__label {
+  color: #8b90a8;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.4rem;
+}
+
+.kpi-card__value {
+  color: #e8eaf0;
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+  margin: 0.4rem 0;
+  font-family: 'Courier New', monospace;
+}
+
+.kpi-card__delta {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.kpi-card__delta--positive {
+  color: #10b981;
+}
+
+.kpi-card__delta--negative {
+  color: #ef4444;
+}
+
+.kpi-card__delta--neutral {
+  color: #8b90a8;
+}
+
 .badge--success {
   background: rgba(52, 201, 126, 0.15);
   border-color: var(--success);
   color: var(--success);
+}
+
+/* ── WELCOME CONTAINER ───────────────────────────────────── */
+.welcome-header {
+  background: #1a1d27;
+  border: 1px solid #2d3144;
+  border-radius: 14px;
+  padding: 1.4rem 1.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.welcome-header h1 {
+  color: #e8eaf0;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.welcome-header p {
+  color: #8b90a8;
+  margin: 0.4rem 0 0;
+  font-size: 14px;
+}
+
+/* ── WELCOME FEATURE CARD ────────────────────────────────── */
+.welcome-feature-card {
+  background: #1a1d27;
+  border: 1px solid #2d3144;
+  border-radius: 12px;
+  padding: 1.2rem 1.4rem;
+  height: 100%;
+  transition: all 0.2s ease;
+}
+
+.welcome-feature-card:hover {
+  border-color: #4f8ef7;
+  background: #20242f;
+  transform: translateY(-2px);
+}
+
+.welcome-feature-card .icon {
+  font-size: 22px;
+  margin-bottom: 0.6rem;
+}
+
+.welcome-feature-card .title {
+  color: #e8eaf0;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.welcome-feature-card .description {
+  color: #8b90a8;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .badge--danger {

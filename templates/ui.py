@@ -64,65 +64,28 @@ def kpi_card(
     Ex:
         kpi_card("Faturamento", "23.435.318", delta=+12.4, prefix="R$")
     """
-    # Cores por tipo
-    color_map = {
-        "primary": PALETTE["primary"],
-        "success": PALETTE["success"],
-        "warning": PALETTE["warning"],
-        "danger": PALETTE["danger"],
-        "info": PALETTE["info"],
-    }
-    border_color = color_map.get(color, PALETTE["primary"])
-    
     # Renderizar delta se fornecido
     delta_html = ""
     if delta is not None:
-        delta_color = get_delta_color(delta)
-        delta_arrow = get_delta_arrow(delta)
+        delta_color_class = (
+            "kpi-card__delta--positive" if delta >= 0 else "kpi-card__delta--negative"
+        )
+        delta_arrow = "↗" if delta >= 0 else "↘"
         delta_html = f'''
-        <div style="
-            color: {delta_color};
-            font-size: 13px;
-            font-weight: 500;
-            margin-top: 0.5rem;
-        ">
+        <div class="kpi-card__delta {delta_color_class}">
             {delta_arrow} {abs(delta):.1f}% {delta_label}
         </div>
         '''
     
-    # Renderizar card
+    # Renderizar card com classes CSS puras
     st.markdown(f"""
-    <div style="
-        background: {PALETTE['surface']};
-        border: 2px solid {border_color};
-        border-radius: 12px;
-        padding: 1.2rem 1.5rem;
-        transition: all 0.2s ease;
-    " onmouseover="this.style.borderColor='{border_color}'; this.style.background='{PALETTE['surface2']}';"
-      onmouseout="this.style.borderColor='{border_color}'; this.style.background='{PALETTE['surface']}';">
-        
-        <div style="
-            color: {PALETTE['muted']};
-            font-size: 12px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 0.4rem;
-        ">
+    <div class="kpi-card">
+        <div class="kpi-card__label">
             {icon} {label}
         </div>
-        
-        <div style="
-            color: {PALETTE['text']};
-            font-size: 28px;
-            font-weight: 700;
-            font-variant-numeric: tabular-nums lining-nums;
-            margin: 0.4rem 0;
-            font-family: 'Courier New', monospace;
-        ">
+        <div class="kpi-card__value">
             {prefix} {value}
         </div>
-        
         {delta_html}
     </div>
     """, unsafe_allow_html=True)

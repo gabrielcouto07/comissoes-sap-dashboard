@@ -313,7 +313,6 @@ def fmt_brl(v: float) -> str:
   except Exception:
       return "R$ 0,00"
 
-
 def pct_fmt(v: float) -> str:
   try:
       return f"{float(v):.2f}%"
@@ -321,7 +320,7 @@ def pct_fmt(v: float) -> str:
       return "0,00%"
 
 
-def smart_date(val):
+def smart_date(val) -> pd.Timestamp | type[pd.NaT]:
   if pd.isna(val):
       return pd.NaT
   s = str(val).strip()
@@ -545,7 +544,7 @@ def normalize_columns_comm(df: pd.DataFrame) -> pd.DataFrame:
 
   # Data
   if "ReceiveDate" in df.columns:
-      df["ReceiveDate"] = df["ReceiveDate"].apply(smart_date)
+      df["ReceiveDate"] = df["ReceiveDate"].apply(smart_date)  # type: ignore[arg-type]
       df = df[df["ReceiveDate"].notna()].copy()
   else:
       df["ReceiveDate"] = pd.NaT
@@ -690,15 +689,9 @@ uploaded = st.sidebar.file_uploader(
 
 if uploaded is None:
   st.markdown("""
-  <div style="
-      background: #1a1d27;
-      border: 1px solid #2d3144;
-      border-radius: 14px;
-      padding: 1.4rem 1.8rem;
-      margin-bottom: 1.5rem;
-  ">
-      <h1 style="color: #e8eaf0; margin:0; font-size:24px; font-weight:700;">📊 Power BI Automático</h1>
-      <p style="color: #8b90a8; margin: .4rem 0 0; font-size:14px;">Plataforma de análise multi-modelos com detecção automática de layout</p>
+  <div class="welcome-header">
+      <h1>📊 Power BI Automático</h1>
+      <p>Plataforma de análise multi-modelos com detecção automática de layout</p>
   </div>
   """, unsafe_allow_html=True)
 
@@ -706,49 +699,28 @@ if uploaded is None:
   
   with c1:
       st.markdown("""
-      <div style="
-          background:#1a1d27; border:1px solid #2d3144;
-          border-radius:12px; padding:1.2rem 1.4rem; height:100%;
-      ">
-          <div style="font-size:22px; margin-bottom:.6rem">💰</div>
-          <div style="color:#e8eaf0; font-size:15px; font-weight:600; margin-bottom:.4rem">
-              Comissões
-          </div>
-          <div style="color:#8b90a8; font-size:13px; line-height:1.5">
-              Deduplicação inteligente de NFs · 7 perspectivas analíticas
-          </div>
+      <div class="welcome-feature-card">
+          <div class="icon">💰</div>
+          <div class="title">Comissões</div>
+          <div class="description">Deduplicação inteligente de NFs · 7 perspectivas analíticas</div>
       </div>
       """, unsafe_allow_html=True)
 
   with c2:
       st.markdown("""
-      <div style="
-          background:#1a1d27; border:1px solid #2d3144;
-          border-radius:12px; padding:1.2rem 1.4rem; height:100%;
-      ">
-          <div style="font-size:22px; margin-bottom:.6rem">📋</div>
-          <div style="color:#e8eaf0; font-size:15px; font-weight:600; margin-bottom:.4rem">
-              Vendas SAP
-          </div>
-          <div style="color:#8b90a8; font-size:13px; line-height:1.5">
-              Query 'Vendas por Item' · 35+ campos · KPIs + UF + Tipo
-          </div>
+      <div class="welcome-feature-card">
+          <div class="icon">📋</div>
+          <div class="title">Vendas SAP</div>
+          <div class="description">Query 'Vendas por Item' · 35+ campos · KPIs + UF + Tipo</div>
       </div>
       """, unsafe_allow_html=True)
 
   with c3:
       st.markdown("""
-      <div style="
-          background:#1a1d27; border:1px solid #2d3144;
-          border-radius:12px; padding:1.2rem 1.4rem; height:100%;
-      ">
-          <div style="font-size:22px; margin-bottom:.6rem">🤖</div>
-          <div style="color:#e8eaf0; font-size:15px; font-weight:600; margin-bottom:.4rem">
-              Auto-detect
-          </div>
-          <div style="color:#8b90a8; font-size:13px; line-height:1.5">
-              Modelo identificado automaticamente pelo layout do arquivo
-          </div>
+      <div class="welcome-feature-card">
+          <div class="icon">🤖</div>
+          <div class="title">Auto-detect</div>
+          <div class="description">Modelo identificado automaticamente pelo layout do arquivo</div>
       </div>
       """, unsafe_allow_html=True)
 
@@ -856,7 +828,7 @@ _raw_cols_mapped = {
 _d_min_str = _d_max_str = "—"
 if _date_col in _raw_cols_mapped:
   try:
-      _dc_raw = df_raw[_raw_cols_mapped[_date_col]].apply(smart_date)
+      _dc_raw = df_raw[_raw_cols_mapped[_date_col]].apply(smart_date)  # type: ignore[arg-type]
       if _dc_raw.notna().any():
           _d_min_str = _dc_raw.min().strftime("%d/%m/%Y")
           _d_max_str = _dc_raw.max().strftime("%d/%m/%Y")
@@ -1281,6 +1253,11 @@ if model_selected == "COMISSAO":
               drill = drill[mask]
 
           dd = drill.copy()
+          # Rename ItemCode to show code + description
+          if "ItemCode" in dd.columns and "Descricao" in dd.columns:
+              dd["Item"] = dd["ItemCode"].astype(str) + " — " + dd["Descricao"].astype(str)
+              dd = dd.drop(columns=["ItemCode"])
+              dd = dd[["Item"] + [col for col in dd.columns if col != "Item"]]
           for cn in ["Vendas","Recebido","Comissao"]:
               dd[cn] = dd[cn].apply(fmt_brl)
           dd["CommissionPct"] = dd["CommissionPct"].apply(pct_fmt)
@@ -1331,6 +1308,11 @@ if model_selected == "COMISSAO":
           )
           di = di[mask]
       di_d = di.copy()
+      # Rename ItemCode to show code + description
+      if "ItemCode" in di_d.columns and "Descricao" in di_d.columns:
+          di_d["Item"] = di_d["ItemCode"].astype(str) + " — " + di_d["Descricao"].astype(str)
+          di_d = di_d.drop(columns=["ItemCode"])
+          di_d = di_d[["Item"] + [col for col in di_d.columns if col != "Item"]]
       for cn in ["Vendas","Recebido","Comissao"]:
           if cn in di_d.columns: di_d[cn] = di_d[cn].apply(fmt_brl)
       st.caption(f"{len(di)} itens distintos")

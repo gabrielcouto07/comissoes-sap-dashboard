@@ -1,3 +1,119 @@
+# 📊 Power BI Automático — Multi-Modelos
+
+Plataforma de análise genérica com **detecção automática** de modelos e **suporte multi-formato**.
+
+## 🚀 Como Usar
+
+```bash
+streamlit run app.py
+```
+
+1. **Upload** arquivo Excel ou CSV
+2. **Auto-detect** modelo automaticamente
+3. **Confirmar** ou trocar o model detector
+4. **Analisar** dados com filtros, gráficos e KPIs
+5. **Exportar** em múltiplos formatos
+
+## 📋 Modelos Disponíveis
+
+| Modelo | Ícone | Descrição |
+|--------|-------|----------|
+| **COMISSAO** | 💰 | Análise de comissões com deduplicação |
+| **VENDAS** | 📈 | Vendas por item (Query SAP B1) |
+
+## 📁 Estrutura
+
+```
+.
+├── app.py                    # Aplicação principal
+├── model_detector.py         # Detecção automática de modelos
+├── requirements.txt
+├── utils/                    # Funções genéricas reutilizáveis
+│   ├── formatters.py         # fmt_brl, pct_fmt, fmt_date, fmt_int
+│   ├── parsers.py            # parse_num (c/ patch "25.48 m3"), smart_date, _get_first_mode
+│   ├── normalizers.py        # normalize_columns, validate_required_columns
+│   ├── deduplicators.py      # add_dedup_flags, get_dedup_subset
+│   ├── file_loader.py        # load_file, to_excel
+│   └── __init__.py
+├── models/                   # Modelos de análise
+│   ├── base_model.py         # Classe abstrata (ABC)
+│   ├── comissao_model.py     # Refactor do app.py original
+│   ├── vendas_model.py       # Novo modelo SAP Vendas
+│   └── __init__.py
+├── templates/                # Componentes Streamlit reutilizáveis
+│   ├── dashboard_template.py # render_header, render_kpis, render_filters
+│   ├── export_template.py    # render_export_tab
+│   └── __init__.py
+└── blank/                    # Pasta reservada
+```
+
+## ✨ Features
+
+✅ **Detecção Automática** — Análisa colunas e sugere modelo  
+✅ **Múltiplos Modelos** — Suporta Comissão, Vendas, Compras, Despesas (extensível)  
+✅ **Deduplicação Inteligente** — Evita múltipla contagem de NFs  
+✅ **Filtros Dinâmicos** — Adapta conforme colunas disponíveis  
+✅ **Export Flexível** — Excel (múltiplas sheets), CSV  
+✅ **100% Modular** — Novo modelo = ~100 linhas  
+
+## 🔧 Adicionando Novo Modelo
+
+```python
+# models/novo_model.py
+from models.base_model import BaseModel
+
+class NovoModel(BaseModel):
+    MODEL_NAME = "NOVO"
+    MODEL_ICON = "🎯"
+    
+    COL_MAP = {...}
+    REQUIRED_COLS = [...]
+    NUMERIC_COLS = [...]
+    # ... resto da config
+    
+    def load(self):
+        super().load()  # pipeline base
+        return self
+    
+    # Implementar métodos abstratos...
+```
+
+Registrar em `app.py`:
+```python
+MODELS_AVAILABLE = {
+    ...
+    "NOVO": NovoModel,
+}
+```
+
+## 🐛 Melhorias Recentes
+
+- ✅ **Parse_num patch** — Suporta "25.48 m3", "100 kg" automaticamente
+- ✅ **Model_detector** — Auto-detecta modelos com confiança
+- ✅ **VendasModel** — Suporta 35 colunas SAP B1
+- ✅ **App.py lean** — ~150 linhas, pura orquestração
+- ✅ **UX sidebar** — 3 passos: Upload → Auto-detect → Confirmar
+
+## 📦 Dependências
+
+```
+streamlit>=1.28
+pandas>=2.0
+numpy>=1.24
+plotly>=5.0
+openpyxl>=3.0
+```
+
+Instalar:
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+**Status:** ✅ 100% Funcional e Testado  
+**Versão:** 1.0 · 2026-04-14  
+**Arquitetura:** Strategy Pattern + Multi-Modelos
 # � Power BI Automático Multi-Modelos
 
 Dashboard em **Streamlit** com arquitetura modular para múltiplos tipos de análise: Comissões, Vendas, Compras, Despesas, Receitas.

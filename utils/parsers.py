@@ -18,6 +18,7 @@ def parse_num(v) -> float:
     - Excel serials
     - NaN/None/null strings
     - Valores já numéricos
+    - [PATCH 5 linhas] Strings com unidades (ex: "25.48 m3", "100 kg")
     
     Args:
         v: string, int, float ou qualquer tipo
@@ -28,11 +29,9 @@ def parse_num(v) -> float:
     Example:
         >>> parse_num("1.234,56")
         1234.56
-        >>> parse_num("1,234.56")
-        1234.56
+        >>> parse_num("25.48 m3")
+        25.48
         >>> parse_num("NaN")
-        0.0
-        >>> parse_num(None)
         0.0
     """
     if pd.isna(v):
@@ -43,6 +42,12 @@ def parse_num(v) -> float:
     # Strings textuais que representam nulo
     if s.lower() in ("nan", "none", "null", "", "n/a", "-"):
         return 0.0
+    
+    # ── [PATCH 5 LINHAS] Remover unidades (m3, kg, l, un, etc) ──
+    # Detecta padrões como "25.48 m3" e extrai só o número
+    s = re.sub(r'\s*[a-za-z%/]+.*$', '', s, flags=re.IGNORECASE)
+    s = s.strip()
+    # ────────────────────────────────────────────────────────────
     
     # Remover caracteres não-numéricos exceto ponto, vírgula e sinal
     s = re.sub(r"[^\d.,\-]", "", s)

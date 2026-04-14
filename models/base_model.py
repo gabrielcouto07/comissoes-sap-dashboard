@@ -67,14 +67,11 @@ class BaseModel(ABC):
     
     def load(self) -> "BaseModel":
         """
-        Pipeline completo: normaliza colunas, deduplica se necessário.
-        
-        Chamada assim:
-            model = ComissaoModel(df_raw).load()
-        
-        Returns:
-            self (para chaining)
+        Pipeline: normalize → (opcional) dedup → pronto.
+        Valida após normalize antes de tentar dedup.
         """
+        from utils.normalizers import normalize_columns
+        
         # Step 1: Normalizar colunas
         self.df = normalize_columns(
             self.df_raw,
@@ -84,18 +81,25 @@ class BaseModel(ABC):
             date_cols=self.DATE_COLS,
         )
         
-        # Step 2: Deduplicar se necessário
-        if self.DEDUP_ENABLED:
+        # ✅ Step 1.5: Verificar se normalizou minimamente (pelo menos 1 required)
+        found_required = [c for c in self.REQUIRED_COLS if c in self.df.columns]
+        if not found_required:
+            # Normalização falhou completamente — não tenta dedup
+            # Sinaliza mas não quebra, validate() vai reportar depois
+            return self
+        
+        # Step 2: Dedup apenas se habilitado E colunas existem
+        if self.DEDUP_ENABLED and self.DEDUP_LT_COLS:
+            from utils.deduplicators import add_dedup_flags, get_dedup_subset
             self.df = add_dedup_flags(
                 self.df,
-                lt_key_cols=self.DEDUP_LT_COLS,
+                lt_key_cols=self.DEDUP_LT_COLS,  # guard interno no add_dedup_flags
                 ar_key_cols=self.DEDUP_AR_COLS,
             )
-            # Guardar subsets dedup prontos
-            if self.DEDUP_LT_COLS:
-                self._lt = get_dedup_subset(self.df, "_lt_first")
-            if self.DEDUP_AR_COLS:
-                self._ar = get_dedup_subset(self.df, "_ar_first")
+            if self.DEDUP_LT_COLS and all(c in self.df.columns for c in self.DEDUP_LT_COLS):
+                self._lt = self.df[self.df["_lt_first"]].copy()
+            if self.DEDUP_AR_COLS and all(c in self.df.columns for c in self.DEDUP_AR_COLS):
+                self._ar = self.df[self.df["_ar_first"]].copy()
         
         return self
     

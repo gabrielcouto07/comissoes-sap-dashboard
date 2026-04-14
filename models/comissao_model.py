@@ -95,22 +95,55 @@ class ComissaoModel(BaseModel):
     # ══════════════════════════════════════════════════════
     
     def load(self) -> "ComissaoModel":
-        """Override do load() para adicionar lógica específica."""
-        # Chamar load base (normalize + dedup)
-        super().load()
+        """
+        Pipeline Comissão: normalize → dedup → colunas derivadas.
+        NÃO chama super().load() — faz tudo aqui com guards.
+        """
+        from utils.normalizers import normalize_columns
+        from utils.deduplicators import add_dedup_flags, get_dedup_subset
+        import numpy as np
         
-        # Colunas derivadas específicas
+        # Step 1: Normalize com COL_MAP do Comissão
+        self.df = normalize_columns(
+            self.df_raw,
+            col_map=self.COL_MAP,
+            numeric_cols=self.NUMERIC_COLS,
+            text_cols=self.TEXT_COLS,
+            date_cols=self.DATE_COLS,
+        )
+        
+        # Step 2: Colunas derivadas específicas de Comissão
+        if "ReceiveDate" in self.df.columns:
+            self.df["ReceiveMonth"] = np.where(
+                self.df["ReceiveDate"].notna(),
+                self.df["ReceiveDate"].dt.to_period("M").astype(str),
+                "N/D",
+            )
+        
+        # InvDocNum vazio → NaN para dedup funcionar corretamente
         if "InvDocNum" in self.df.columns:
             self.df["InvDocNum"] = self.df["InvDocNum"].replace(
                 {"": np.nan, "nan": np.nan, "None": np.nan}
             )
         
-        # Fallback para SlpName se vazio
-        if "SlpName" in self.df.columns and "SlpCode" in self.df.columns:
-            if self.df["SlpName"].eq("").all():
+        if "SlpName" in self.df.columns and self.df["SlpName"].eq("").all():
+            if "SlpCode" in self.df.columns:
                 self.df["SlpName"] = "Vendedor " + self.df["SlpCode"].astype(str)
         
-        # Colunas de categória
+        # Step 3: Dedup (com guards internos no add_dedup_flags)
+        if self.DEDUP_ENABLED and self.DEDUP_LT_COLS:
+            self.df = add_dedup_flags(
+                self.df,
+                lt_key_cols=self.DEDUP_LT_COLS,
+                ar_key_cols=self.DEDUP_AR_COLS,
+            )
+            # Subsets prontos apenas se dedup funcionou
+            if "_lt_first" in self.df.columns:
+                self._lt = self.df[self.df["_lt_first"]].copy()
+            if "_ar_first" in self.df.columns:
+                self._ar = self.df[self.df["_ar_first"]].copy()
+        
+        # Step 4: Colunas de categoria
         if "CommissionValue" in self.df.columns:
             self.df["HasCommission"] = np.where(
                 self.df["CommissionValue"] > 0, "Com comissão", "Sem comissão"

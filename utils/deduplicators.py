@@ -48,15 +48,36 @@ def add_dedup_flags(
     """
     df = df.copy()
     
-    # ── LineTotal dedup ──
+    # ── LineTotal dedup ──────────────────────────────────────
     if lt_key_cols:
-        lt_key = df[lt_key_cols].astype(str).agg("‖".join, axis=1)
-        df[lt_col_name] = ~lt_key.duplicated(keep="first")
+        # ✅ Guard: verifica se TODAS as colunas existem
+        missing_lt = [c for c in lt_key_cols if c not in df.columns]
+        if missing_lt:
+            # Não deduplica — avisa mas não quebra
+            import warnings
+            warnings.warn(
+                f"add_dedup_flags: colunas {missing_lt} não encontradas "
+                f"para _lt_first. Dedup ignorado.",
+                stacklevel=2
+            )
+        else:
+            lt_key = df[lt_key_cols].astype(str).agg("‖".join, axis=1)
+            df[lt_col_name] = ~lt_key.duplicated(keep="first")
     
-    # ── AmountReceived dedup ──
+    # ── AmountReceived dedup ──────────────────────────────────
     if ar_key_cols:
-        ar_key = df[ar_key_cols].astype(str).agg("‖".join, axis=1)
-        df[ar_col_name] = ~ar_key.duplicated(keep="first")
+        # ✅ Guard: idem
+        missing_ar = [c for c in ar_key_cols if c not in df.columns]
+        if missing_ar:
+            import warnings
+            warnings.warn(
+                f"add_dedup_flags: colunas {missing_ar} não encontradas "
+                f"para _ar_first. Dedup ignorado.",
+                stacklevel=2
+            )
+        else:
+            ar_key = df[ar_key_cols].astype(str).agg("‖".join, axis=1)
+            df[ar_col_name] = ~ar_key.duplicated(keep="first")
     
     return df
 

@@ -25,7 +25,7 @@ warnings.filterwarnings("ignore")
 from models.comissao_model import ComissaoModel
 from models.vendas_model import VendasModel
 from utils.file_loader import load_file
-from model_detector import detect_model_by_columns, format_detection_message
+from model_detector import detect_model, detect_model_by_columns, format_detection_message
 
 # ═════════════════════════════════════════════════════════════════════
 # CONFIG PÁGINA
@@ -164,30 +164,54 @@ if uploaded is None:
     st.stop()
 
 # ═════════════════════════════════════════════════════════════════════
-# DETECTAR MODELO
+# FIX #2: CACHING CORRETO COM _FAKEFILE
+# @st.cache_data exige tipos serializáveis (bytes + str, não file objects)
 # ═════════════════════════════════════════════════════════════════════
 
+@st.cache_data(show_spinner=False)
+def _cached_load(file_bytes: bytes, filename: str):
+    """
+    Carrega arquivo UMA única vez com cache.
+    @st.cache_data não serializa file objects,
+    então recebe bytes + nome e cria _Fakefile internamente.
+    """
+    import io as _io
+    
+    class _Fakefile:
+        """Wrapper que dá .name ao io.BytesIO."""
+        def __init__(self, b: bytes, n: str):
+            self._buf = _io.BytesIO(b)
+            self.name = n  # ← load_file precisa disso
+        
+        def read(self):
+            return self._buf.read()
+        
+        def seek(self, pos):
+            return self._buf.seek(pos)
+    
+    df, err = load_file(_Fakefile(file_bytes, filename))
+    return df, err
+
+# ── USAR NO CORPO DO APP ──
 with st.spinner("🔄 Carregando e analisando arquivo..."):
-    file_bytes = uploaded.read()
-    df_raw, err = load_file(io.BytesIO(file_bytes), uploaded.name)
+    file_bytes = uploaded.read()  # lê os bytes UMA vez
+    df_raw, err = _cached_load(file_bytes, uploaded.name)  # passa para cache
     
     if err or df_raw is None:
         st.error(f"❌ Erro: {err}")
         st.stop()
 
-# Detectar
-model_detected, conf_score, matching_cols = detect_model_by_columns(df_raw)
+# Detectar usando nova função detect_model() com COL_MAP dinâmico
+model_detected, conf_score = detect_model(df_raw, MODELS_AVAILABLE)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🤖 Auto-Detectado")
 
-conf_badge = "✅ Alta" if conf_score >= 0.8 else "⚠️ Média" if conf_score >= 0.6 else "❌ Baixa"
+conf_badge = "✅ Alta" if conf_score >= 80 else "⚠️ Média" if conf_score >= 60 else "❌ Baixa"
 st.sidebar.markdown(f"""
 **{MODEL_INFO[model_detected]['icon']} {model_detected}**
 
-Confiança: {conf_badge} ({int(conf_score*100)}%)
-
-{len(matching_cols)} colunas reconhecidas
+Confiança: {conf_badge} ({conf_score:.0f}%)
 """)
 
 st.sidebar.markdown("---")
@@ -205,20 +229,41 @@ st.sidebar.markdown("---")
 st.sidebar.caption("© 2026 Power BI Automático")
 
 # ═════════════════════════════════════════════════════════════════════
-# PIPELINE
+# PIPELINE SEGURO: instancia → load → validate ANTES de renderizar
 # ═════════════════════════════════════════════════════════════════════
 
+# Instanciar e carregar
 ModelClass = MODELS_AVAILABLE[model_selected]
-model = ModelClass(df_raw).load()
+model = ModelClass(df_raw)
 
-# Validar
-missing = [c for c in model.REQUIRED_COLS if c not in model.df.columns]
-if missing:
-    st.error(f"❌ Faltam colunas: {', '.join(missing)}")
+with st.spinner(f"🔄 Processando com modelo {model_selected}..."):
+    model.load()
+
+# ✅ Validar ANTES de renderizar qualquer coisa
+is_valid, missing = model.validate()
+
+if not is_valid:
+    st.error(f"❌ Modelo **{model_selected}** não é compatível com este arquivo.")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**Colunas necessárias não encontradas:**")
+        for col in missing:
+            aliases = ModelClass.COL_MAP.get(col, [col])
+            st.markdown(f"- `{col}` → espera: `{' | '.join(aliases[:3])}`")
+    with col2:
+        st.markdown("**Colunas presentes no arquivo:**")
+        for col in list(df_raw.columns)[:10]:
+            st.markdown(f"- `{col}`")
+    
+    # Sugerir o modelo correto
+    best_auto, conf = detect_model(df_raw, MODELS_AVAILABLE)
+    if conf > 40:
+        st.info(f"💡 Tente o modelo **{best_auto}** ({conf:.0f}% compatível)")
     st.stop()
 
 # ═════════════════════════════════════════════════════════════════════
-# HEADER & FILTROS
+# HEADER & FILTROS (só chega aqui se válido)
 # ═════════════════════════════════════════════════════════════════════
 
 ts_now = datetime.now().strftime("%d/%m/%Y %H:%M")

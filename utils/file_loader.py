@@ -41,7 +41,8 @@ def load_file(f, col_map: dict = None):
     if not content:
         return None, "Arquivo vazio."
     
-    name = f.name.lower()
+    # ── Fix #1: usar getattr para não quebrar com BytesIO ──
+    name = getattr(f, 'name', 'arquivo.xlsx').lower()
     
     # Se col_map fornecido, criar set de aliases para scoring
     all_aliases_upper = set()

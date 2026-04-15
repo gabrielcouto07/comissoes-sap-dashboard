@@ -16,13 +16,45 @@ warnings.filterwarnings("ignore")
 # INJEÇÃO DE CSS — DEVE SER A PRIMEIRA COISA DO APP
 # ════════════════════════════════════════════════════════════════════════════
 
+@st.cache_resource
 def _inject_css():
     """Injeta theme.css no início da renderização — antes de qualquer elemento."""
+    import os
+    
+    # Tenta carregar o arquivo CSS
     css_path = Path(__file__).parent / "theme.css"
+    
+    # Se não encontrar, tenta também no diretório de execução do Streamlit
+    if not css_path.exists():
+        css_path = Path.cwd() / "theme.css"
+    
+    css_content = ""
     if css_path.exists():
         with open(css_path, encoding="utf-8") as f:
             css_content = f.read()
+    
+    if css_content:
         st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
+        return True
+    else:
+        # Fallback CSS mínimo se o arquivo não for encontrado
+        fallback_css = """
+        :root {
+            --bg: #0f1117;
+            --bg-secondary: #1a1d27;
+            --border: #2d3144;
+            --text: #e8eaf0;
+            --text-secondary: #8b90a8;
+        }
+        body { background-color: var(--bg); }
+        [data-testid="metric-container"] {
+            overflow: visible !important;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+        """
+        st.markdown(f"<style>{fallback_css}</style>", unsafe_allow_html=True)
+        return False
 
 _inject_css()
 

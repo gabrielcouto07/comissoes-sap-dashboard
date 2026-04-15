@@ -12,6 +12,45 @@ from models.base_model import BaseModel
 from utils import fmt_brl, pct_fmt, _get_first_mode, get_dedup_subset
 
 
+def _dark_chart(fig, height: int = 380):
+    """
+    Aplica dark mode em qualquer figura Plotly.
+    Chamar após px.bar(), px.line(), px.pie(), px.imshow(), etc.
+    NÃO altera dados, colunas ou lógica do gráfico.
+    """
+    fig.update_layout(
+        paper_bgcolor="#1a1d27",
+        plot_bgcolor="#1a1d27",
+        font=dict(color="#c8cad4", size=12),
+        height=height,
+        margin=dict(l=16, r=16, t=44, b=16),
+        legend=dict(
+            bgcolor="#20242f",
+            bordercolor="#2d3144",
+            borderwidth=1,
+            font=dict(size=11)
+        ),
+        xaxis=dict(
+            gridcolor="#2d3144",
+            linecolor="#2d3144",
+            tickcolor="#2d3144",
+            tickfont=dict(color="#8b90a8")
+        ),
+        yaxis=dict(
+            gridcolor="#2d3144",
+            linecolor="#2d3144",
+            tickfont=dict(color="#8b90a8")
+        ),
+        hoverlabel=dict(
+            bgcolor="#20242f",
+            bordercolor="#2d3144",
+            font_size=12,
+            font_color="#e8eaf0"
+        )
+    )
+    return fig
+
+
 class ComissaoModel(BaseModel):
     """
     Modelo de análise de comissões de vendedores.
@@ -417,8 +456,8 @@ class ComissaoModel(BaseModel):
                 labels={"Comissao": "R$", "Vendedor": ""},
             )
             fig_v.update_traces(textposition="outside")
-            fig_v.update_layout(showlegend=False, coloraxis_showscale=False,
-                                height=420, plot_bgcolor="white", paper_bgcolor="white")
+            fig_v.update_layout(showlegend=False, coloraxis_showscale=False, height=420)
+            fig_v = _dark_chart(fig_v, height=420)
             c1.plotly_chart(fig_v, use_container_width=True)
             
             if len(resumo_vend) > 0:
@@ -429,7 +468,12 @@ class ComissaoModel(BaseModel):
                     color_discrete_sequence=px.colors.qualitative.Set3,
                 )
                 fig_pie.update_traces(textinfo="percent+label")
-                fig_pie.update_layout(height=420, showlegend=False, paper_bgcolor="white")
+                fig_pie.update_layout(height=420, showlegend=False)
+                fig_pie.update_traces(
+                    textfont_color="#e8eaf0",
+                    marker=dict(line=dict(color="#1a1d27", width=2))
+                )
+                fig_pie = _dark_chart(fig_pie, height=420)
                 c2.plotly_chart(fig_pie, use_container_width=True)
         
         # ── Mais charts e tabs renderizadas aqui ──

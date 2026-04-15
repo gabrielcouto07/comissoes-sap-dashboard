@@ -3,6 +3,13 @@ import io, re, numpy as np, pandas as pd, plotly.express as px, streamlit as st
 from datetime import datetime
 from models.base_model import BaseModel
 
+# DEBUG_MODE: tentará importar do app, com fallback para False se circular
+DEBUG_MODE = False
+try:
+    from app import DEBUG_MODE
+except (ImportError, RuntimeError):
+    DEBUG_MODE = False
+
 def _parse_num(v) -> float:
     if pd.isna(v): return 0.0
     s = str(v).strip()
@@ -66,18 +73,59 @@ def _detectar_granularidade(df: pd.DataFrame, date_col: str = "SaleDate") -> dic
 
 
 def _badge_granularidade(gran: dict) -> str:
-    """Badge HTML colorido com info do período."""
+    """Badge HTML colorido com info do período — tema escuro."""
     cores = {
-        "diário": "#dcfce7:#166534",
-        "semanal": "#fef9c3:#854d0e",
-        "mensal": "#dbeafe:#1e40af"
+        "diário": "#1e3a1f:#86efac",      # Verde escuro + verde claro
+        "semanal": "#1c2640:#7ba7f7",     # Azul escuro + azul claro
+        "mensal": "#2d1d3f:#d8b4fe"       # Roxo escuro + roxo claro
     }
-    bg, fg = cores.get(gran["tipo"], "#f1f5f9:#475569").split(":")
+    bg, fg = cores.get(gran["tipo"], "#1a1d27:#8b90a8").split(":")
+    tipo_label = gran["tipo"].capitalize()  # "Semanal" em vez de "SEMANAL"
+    periodo_label = gran["periodo_str"].replace(" semanas", " períodos").replace(" meses", " períodos").replace(" dias", " períodos")
     return (
-        f'<span style="background:{bg};color:{fg};padding:.2rem .6rem;'
-        f'border-radius:6px;font-size:.72rem;font-weight:700">'
-        f'📅 Visão {gran["tipo"].upper()} · {gran["periodo_str"]}</span>'
+        f'<span style="background:{bg};border: 1px solid {fg};color:{fg};padding:.3rem .8rem;'
+        f'border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.03em">'
+        f'📅 Visão {tipo_label} — {periodo_label}</span>'
     )
+
+
+def _dark_chart(fig, height: int = 380):
+    """
+    Aplica dark mode em qualquer figura Plotly.
+    Chamar após px.bar(), px.line(), px.pie(), px.imshow(), etc.
+    NÃO altera dados, colunas ou lógica do gráfico.
+    """
+    fig.update_layout(
+        paper_bgcolor="#1a1d27",
+        plot_bgcolor="#1a1d27",
+        font=dict(color="#c8cad4", size=12),
+        height=height,
+        margin=dict(l=16, r=16, t=44, b=16),
+        legend=dict(
+            bgcolor="#20242f",
+            bordercolor="#2d3144",
+            borderwidth=1,
+            font=dict(size=11)
+        ),
+        xaxis=dict(
+            gridcolor="#2d3144",
+            linecolor="#2d3144",
+            tickcolor="#2d3144",
+            tickfont=dict(color="#8b90a8")
+        ),
+        yaxis=dict(
+            gridcolor="#2d3144",
+            linecolor="#2d3144",
+            tickfont=dict(color="#8b90a8")
+        ),
+        hoverlabel=dict(
+            bgcolor="#20242f",
+            bordercolor="#2d3144",
+            font_size=12,
+            font_color="#e8eaf0"
+        )
+    )
+    return fig
 
 
 def _chart_evolucao_smart(df: pd.DataFrame, gran: dict, date_col: str = "SaleDate", 
@@ -163,10 +211,9 @@ def _chart_evolucao_smart(df: pd.DataFrame, gran: dict, date_col: str = "SaleDat
     
     fig.update_layout(
         height=400,
-        hovermode="x unified",
-        plot_bgcolor="white",
-        paper_bgcolor="white"
+        hovermode="x unified"
     )
+    fig = _dark_chart(fig, height=400)
     return fig
 
 
@@ -335,19 +382,21 @@ class VendasModel(BaseModel):
         # ═══════════════════════════════════════════════════════════════════
         # 🔧 FASE 0: DEBUG BLOCK (remover depois de validar)
         # ═══════════════════════════════════════════════════════════════════
-        with st.expander("🔧 Debug: Colunas & Agregações", expanded=False):
-            col_d1, col_d2 = st.columns(2)
-            with col_d1:
-                st.write("**Colunas no df:**")
-                st.code(", ".join(df.columns.tolist()))
-                st.write(f"**Total de linhas:** {len(df):,}".replace(",","."))
-            with col_d2:
-                st.write("**Chaves em aggs:**")
-                st.code(", ".join(aggs.keys()) if aggs else "vazio")
-                for k, v in aggs.items():
-                    st.write(f"  {k}: {len(v)} linhas, cols: {list(v.columns)}")
         
-        st.markdown("---")
+        if DEBUG_MODE:
+            with st.expander("🔧 Debug: Colunas & Agregações", expanded=False):
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                    st.write("**Colunas no df:**")
+                    st.code(", ".join(df.columns.tolist()))
+                    st.write(f"**Total de linhas:** {len(df):,}".replace(",","."))
+                with col_d2:
+                    st.write("**Chaves em aggs:**")
+                    st.code(", ".join(aggs.keys()) if aggs else "vazio")
+                    for k, v in aggs.items():
+                        st.write(f"  {k}: {len(v)} linhas, cols: {list(v.columns)}")
+            
+            st.markdown("---")
         
         # ═══════════════════════════════════════════════════════════════════
         # 📊 FASE 1 + 2: DASHBOARD COMPLETO
@@ -383,6 +432,11 @@ class VendasModel(BaseModel):
                         color_discrete_sequence=px.colors.qualitative.Set2
                     )
                     fig_grupo.update_layout(height=450)
+                    fig_grupo.update_traces(
+                        textfont_color="#e8eaf0",
+                        marker=dict(line=dict(color="#1a1d27", width=2))
+                    )
+                    fig_grupo = _dark_chart(fig_grupo, height=450)
                     st.plotly_chart(fig_grupo, use_container_width=True)
                 else:
                     st.info("Sem dados de Grupo Item")
@@ -407,6 +461,7 @@ class VendasModel(BaseModel):
                     color_discrete_sequence=px.colors.qualitative.Pastel1
                 )
                 fig_trend.update_layout(height=400, hovermode="x unified")
+                fig_trend = _dark_chart(fig_trend, height=400)
                 st.plotly_chart(fig_trend, use_container_width=True)
         
         st.markdown("---")
@@ -439,6 +494,7 @@ class VendasModel(BaseModel):
                     aspect="auto"
                 )
                 fig_heat.update_layout(height=300)
+                fig_heat = _dark_chart(fig_heat, height=300)
                 st.plotly_chart(fig_heat, use_container_width=True)
         
         st.markdown("---")
@@ -505,7 +561,8 @@ class VendasModel(BaseModel):
                     texttemplate="%{x:.0f}%",
                     textposition="outside"
                 )
-                fig_growth.update_layout(showlegend=False, height=350, plot_bgcolor="white")
+                fig_growth.update_layout(showlegend=False, height=350)
+                fig_growth = _dark_chart(fig_growth, height=350)
                 st.plotly_chart(fig_growth, use_container_width=True)
             
             with col_growth_2:
@@ -558,7 +615,8 @@ class VendasModel(BaseModel):
                         texttemplate="R$ %{x:,.0f}",
                         textposition="outside"
                     )
-                    fig_cli.update_layout(showlegend=False, height=400, plot_bgcolor="white")
+                    fig_cli.update_layout(showlegend=False, height=400)
+                    fig_cli = _dark_chart(fig_cli, height=400)
                     st.plotly_chart(fig_cli, use_container_width=True)
                 
                 with col_table:
@@ -603,6 +661,7 @@ class VendasModel(BaseModel):
                             color_discrete_sequence=px.colors.qualitative.Set1
                         )
                         fig_trend_vend.update_layout(height=400, hovermode="x unified")
+                        fig_trend_vend = _dark_chart(fig_trend_vend, height=400)
                         st.plotly_chart(fig_trend_vend, use_container_width=True)
                     else:
                         st.info("Sem SaleDate para análise de tendência")
@@ -775,23 +834,14 @@ class VendasModel(BaseModel):
     
     def _render_kpi_row(self, df: pd.DataFrame) -> None:
         """
-        Renderiza 6 KPIs com tratamento robusto.
-        FIX 1 (Roadmap v3):
-        • InvoiceTotal com fallback para LineTotal
-        • Clientes com .dropna() + strip("") + .nunique()
-        • NFs com .dropna() + tratamento de "nan"
+        Renderiza 3 KPIs principais em 1 linha limpa.
+        Focado nos indicadores que realmente importam:
+        • Faturamento (métrica financeira)
+        • Vendedores (força de venda)
+        • NFs (volume de transações)
         """
-        c1, c2, c3, c4, c5, c6 = st.columns(6)
-        
         # Faturamento
         total_fat = df["LineTotal"].sum() if "LineTotal" in df.columns else 0
-        
-        # Valor NF (com fallback)
-        total_nota = 0
-        if "InvoiceTotal" in df.columns:
-            total_nota = df["InvoiceTotal"].sum()
-        if total_nota == 0 and "LineTotal" in df.columns:
-            total_nota = df["LineTotal"].sum()
         
         # NFs com tratamento robusto
         n_nfs = 0
@@ -807,37 +857,17 @@ class VendasModel(BaseModel):
                 .nunique()
             )
         
-        # Clientes com tratamento robusto (FIX: agora usa .dropna())
-        n_clientes = 0
-        if "CardName" in df.columns:
-            n_clientes = (
-                df["CardName"]
-                .dropna()
-                .astype(str)
-                .str.strip()
-                .replace("", np.nan)
-                .dropna()
-                .nunique()
-            )
-        
         # Vendedores
         n_vend = df["SlpName"].dropna().nunique() if "SlpName" in df.columns else 0
         
-        # Ticket Médio
-        ticket = total_nota / n_nfs if n_nfs > 0 else 0
-        
-        kpis = [
-            (c1, "💰 Faturamento", _fmt_brl(total_fat), "R$/itens"),
-            (c2, "🧾 Valor NF", _fmt_brl(total_nota), f"{n_nfs} NFs"),
-            (c3, "🎯 Ticket Médio", _fmt_brl(ticket), "por NF"),
-            (c4, "👤 Vendedores", str(n_vend), "ativos"),
-            (c5, "🏥 Clientes", str(n_clientes), "distintos"),
-            (c6, "📄 NFs", str(n_nfs), "emitidas"),
-        ]
-        
-        for col, label, value, sub in kpis:
-            with col:
-                st.metric(label, value, sub)
+        # UMA LINHA: 3 KPIs principais
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric("💰 Faturamento", _fmt_brl(total_fat), "no período")
+        with c2:
+            st.metric("👤 Vendedores", str(n_vend), "ativos")
+        with c3:
+            st.metric("📄 NFs", str(n_nfs), "emitidas")
     
     def _chart_top_vendedores(self, df_vend: pd.DataFrame, n: int = 10):
         """Gráfico de ranking Top N vendedores com destaque."""
@@ -857,7 +887,8 @@ class VendasModel(BaseModel):
             texttemplate="R$ %{x:,.0f}",
             textposition="outside"
         )
-        fig.update_layout(showlegend=False, height=400, plot_bgcolor="white")
+        fig.update_layout(showlegend=False, height=400)
+        fig = _dark_chart(fig, height=400)
         return fig
 
     def _calcular_curva_abc(self, df: pd.DataFrame, group_col: str = "CardName", 

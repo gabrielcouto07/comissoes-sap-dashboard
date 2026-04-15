@@ -45,6 +45,12 @@ from templates.ui import (
 # Único import externo: VendasModel (lógica separada por complexidade)
 from models.vendas_model import VendasModel
 
+# ════════════════════════════════════════════════════════════════════════════
+# CONFIGURAÇÃO GLOBAL — DEBUG MODE
+# ════════════════════════════════════════════════════════════════════════════
+
+DEBUG_MODE = False   # True = mostra debug | False = oculta para apresentação
+
 # FASE 1: FUNÇÕES DE FILTROS NOVOS (Sidebar Compacto)
 
 def render_filtros_sidebar_vendas(df: pd.DataFrame):
@@ -179,7 +185,15 @@ def render_filtros_ativos_bar(filtros: dict, df_total: pd.DataFrame,
             f"| Filtros: {' · '.join(chips)}".replace(",", ".")
         )
     else:
-        st.success(f"✅ **{n_filtered:,} linhas** — sem filtros".replace(",", "."))
+        # Badge discreto em vez de st.success() grande
+        n_fmt = f"{n_filtered:,}".replace(",", ".")
+        st.markdown(
+            f'<div style="display:flex;align-items:center;gap:.6rem;margin:-.5rem 0 1.2rem">'
+            f'<span style="background:#1a2e1a;border:1px solid #2d5a2d;color:#6dbf6d;font-size:11px;font-weight:500;padding:.25rem .7rem;border-radius:20px">✅ {n_fmt} linhas</span>'
+            f'<span style="color:#8b90a8;font-size:11px">sem filtros ativos</span>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
 
 # ═════════════════════════════════════════════════════════════════════════
 # SEÇÃO 1 — CONFIG DA PÁGINA
@@ -662,18 +676,6 @@ def detect_model_auto(df: pd.DataFrame) -> tuple[str, float]:
 # SEÇÃO 9 — SIDEBAR
 # ══════════════════════════════════════════════════════════════════════
 
-st.sidebar.markdown("""
-<div style="text-align:center;padding:1.2rem 0 .8rem">
-<div style="font-size:2.8rem;line-height:1">📊</div>
-<h2 style="color:#e2e8f0;margin:.3rem 0 0;font-size:1.15rem;font-weight:800">
-  Power BI Automático
-</h2>
-<p style="color:#94a3b8;font-size:.7rem;margin:.1rem 0 0">
-  Auto-detect · Multi-modelos · v2.0
-</p>
-</div>
-""", unsafe_allow_html=True)
-
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📂 Upload")
 
@@ -681,6 +683,7 @@ uploaded = st.sidebar.file_uploader(
   "Escolha arquivo",
   type=["xlsx", "xls", "csv"],
   help="Planilha Excel ou CSV com dados para análise",
+  key="main_file_uploader"
 )
 
 # ══════════════════════════════════════════════════════════════════════
@@ -850,20 +853,6 @@ st.markdown(f"""
 </p>
 </div>
 """.replace(",", "."), unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════
-# ══════════════════════════════════════════════════════════════════════
-#
-#   ██████╗ ██████╗ ███╗   ███╗██╗███████╗███████╗ █████╗  ██████╗
-#  ██╔════╝██╔═══██╗████╗ ████║██║██╔════╝██╔════╝██╔══██╗██╔═══██╗
-#  ██║     ██║   ██║██╔████╔██║██║███████╗███████╗███████║██║   ██║
-#  ██║     ██║   ██║██║╚██╔╝██║██║╚════██║╚════██║██╔══██║██║   ██║
-#  ╚██████╗╚██████╔╝██║ ╚═╝ ██║██║███████║███████║██║  ██║╚██████╔╝
-#   ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝╚══════╝╚══════╝╚═╝  ╚═╝ ╚═════╝
-#
-# ══════════════════════════════════════════════════════════════════════
-# ══════════════════════════════════════════════════════════════════════
 
 if model_selected == "COMISSAO":
 
@@ -1419,20 +1408,6 @@ if model_selected == "COMISSAO":
       st.markdown("---")
       st.subheader("📊 Prévia — resumo por vendedor")
       st.dataframe(prev, use_container_width=True, height=340)
-
-
-# ══════════════════════════════════════════════════════════════════════
-# ══════════════════════════════════════════════════════════════════════
-#
-#  ██╗   ██╗███████╗███╗   ██╗██████╗  █████╗ ███████╗
-#  ██║   ██║██╔════╝████╗  ██║██╔══██╗██╔══██╗██╔════╝
-#  ██║   ██║█████╗  ██╔██╗ ██║██║  ██║███████║███████╗
-#  ╚██╗ ██╔╝██╔══╝  ██║╚██╗██║██║  ██║██╔══██║╚════██║
-#   ╚████╔╝ ███████╗██║ ╚████║██████╔╝██║  ██║███████║
-#    ╚═══╝  ╚══════╝╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝╚══════╝
-#
-# ══════════════════════════════════════════════════════════════════════
-# ══════════════════════════════════════════════════════════════════════
 
 elif model_selected == "VENDAS":
 

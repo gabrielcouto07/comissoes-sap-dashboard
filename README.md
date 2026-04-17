@@ -1,328 +1,303 @@
-# 📊 Power BI Automático — Multi-Modelos
+# 📊 Analytics Dashboard — Fase 2.0 ✨
 
-Plataforma de análise genérica com **detecção automática** de modelos e **suporte multi-formato**.
+Dashboard profissional de análise de dados com **dupla arquitetura**: versão moderna em **React + FastAPI** (frontend premium) e versão interativa em **Streamlit** (análise rápida).
 
-## 🚀 Como Usar
+Detecção automática de tipos, filtros inteligentes, KPIs com trends, análises avançadas e insights automáticos com detecção de anomalias.
 
-```bash
-streamlit run app.py
-```
+---
 
-1. **Upload** arquivo Excel ou CSV
-2. **Auto-detect** modelo automaticamente
-3. **Confirmar** ou trocar o model detector
-4. **Analisar** dados com filtros, gráficos e KPIs
-5. **Exportar** em múltiplos formatos
+## 🚀 Features
 
-## 📋 Modelos Disponíveis
+### ✅ Carregamento Inteligente
+- 📁 **Multi-formato**: Excel (.xlsx, .xls), CSV, TXT, JSON
+- 🔍 **Auto-detecção de tipos**: data, numérico, categórico
+- 🧹 **Limpeza automática**: R$, %, separadores decimais
+- ⚡ **Caching de performance**: Sessão mantida em memória
 
-| Modelo | Ícone | Descrição |
-|--------|-------|----------|
-| **COMISSAO** | 💰 | Análise de comissões com deduplicação |
-| **VENDAS** | 📈 | Vendas por item (Query SAP B1) |
+### ✅ Filtros Avançados
+- 📅 Intervalo de datas inteligente
+- 🔢 Sliders para ranges numéricos
+- 🏷️ Multi-select para categóricas
+- 🎛️ Filtros contextuais em tempo real
 
-## 📁 Estrutura
+### ✅ KPIs Premium (v2.0)
+- 💎 **Smart KPI Cards** com indicadores de tendência ↑↓
+- 📊 Trends em % com cores dinâmicas (verde/vermelho)
+- 📉 **Detecção de anomalias** (Z-score + IQR)
+- 🔍 **Auto-detecção de schema**: Vendas, Financeiro, Ops, RH
+- 💡 **Insights automáticos** com alertas visuais
 
-```
-.
-├── app.py                    # Aplicação principal
-├── model_detector.py         # Detecção automática de modelos
-├── requirements.txt
-├── utils/                    # Funções genéricas reutilizáveis
-│   ├── formatters.py         # fmt_brl, pct_fmt, fmt_date, fmt_int
-│   ├── parsers.py            # parse_num (c/ patch "25.48 m3"), smart_date, _get_first_mode
-│   ├── normalizers.py        # normalize_columns, validate_required_columns
-│   ├── deduplicators.py      # add_dedup_flags, get_dedup_subset
-│   ├── file_loader.py        # load_file, to_excel
-│   └── __init__.py
-├── models/                   # Modelos de análise
-│   ├── base_model.py         # Classe abstrata (ABC)
-│   ├── comissao_model.py     # Refactor do app.py original
-│   ├── vendas_model.py       # Novo modelo SAP Vendas
-│   └── __init__.py
-├── templates/                # Componentes Streamlit reutilizáveis
-│   ├── dashboard_template.py # render_header, render_kpis, render_filters
-│   ├── export_template.py    # render_export_tab
-│   └── __init__.py
-└── blank/                    # Pasta reservada
-```
+### ✅ 5+ Abas de Análise (Streamlit)
+1. **📋 Visão Geral** — Dados + Qualidade + Anomalias detectadas
+2. **📅 Temporal** — Séries temporais com múltiplas granularidades
+3. **🔎 Explorador** — Distribuições + Análise cruzada
+4. **📈 Estatísticas** — Descritivas, correlação, scatter plots
+5. **💾 Exportação** — Download Excel/CSV com filtros aplicados
 
-## ✨ Features
+### ✅ 8 Páginas (React Frontend)
+1. **Welcome** — Upload intuitivo
+2. **Overview** — Dashboard executivo
+3. **Temporal** — Gráficos de série temporal
+4. **Distribution** — Histogramas e box plots
+5. **Ranking** — Top N categorias
+6. **Explorer** — Análise livre
+7. **Correlation** — Matriz de correlação
+8. **Quality** — Análise de qualidade de dados
+9. **Export** — Exportação de dados
 
-✅ **Detecção Automática** — Análisa colunas e sugere modelo  
-✅ **Múltiplos Modelos** — Suporta Comissão, Vendas, Compras, Despesas (extensível)  
-✅ **Deduplicação Inteligente** — Evita múltipla contagem de NFs  
-✅ **Filtros Dinâmicos** — Adapta conforme colunas disponíveis  
-✅ **Export Flexível** — Excel (múltiplas sheets), CSV  
-✅ **100% Modular** — Novo modelo = ~100 linhas  
+---
 
-## 🔧 Adicionando Novo Modelo
-
-```python
-# models/novo_model.py
-from models.base_model import BaseModel
-
-class NovoModel(BaseModel):
-    MODEL_NAME = "NOVO"
-    MODEL_ICON = "🎯"
-    
-    COL_MAP = {...}
-    REQUIRED_COLS = [...]
-    NUMERIC_COLS = [...]
-    # ... resto da config
-    
-    def load(self):
-        super().load()  # pipeline base
-        return self
-    
-    # Implementar métodos abstratos...
-```
-
-Registrar em `app.py`:
-```python
-MODELS_AVAILABLE = {
-    ...
-    "NOVO": NovoModel,
-}
-```
-
-## 🐛 Melhorias Recentes
-
-- ✅ **Parse_num patch** — Suporta "25.48 m3", "100 kg" automaticamente
-- ✅ **Model_detector** — Auto-detecta modelos com confiança
-- ✅ **VendasModel** — Suporta 35 colunas SAP B1
-- ✅ **App.py lean** — ~150 linhas, pura orquestração
-- ✅ **UX sidebar** — 3 passos: Upload → Auto-detect → Confirmar
-
-## 📦 Dependências
+## 📁 Arquitetura do Projeto
 
 ```
-streamlit>=1.28
-pandas>=2.0
-numpy>=1.24
-plotly>=5.0
-openpyxl>=3.0
-```
-
-Instalar:
-```bash
-pip install -r requirements.txt
+AnalyticsApp/
+│
+├── 📦 BACKEND (FastAPI)
+│   ├── backend/
+│   │   ├── main.py              # FastAPI app + CORS
+│   │   ├── session.py           # Gerenciamento de sessões UUID
+│   │   ├── routers/
+│   │   │   ├── upload.py        # POST /api/upload
+│   │   │   ├── data.py          # GET /api/data/*
+│   │   │   ├── charts.py        # POST /api/charts/*
+│   │   │   └── export.py        # GET /api/export/*
+│   │   └── services/
+│   │       ├── parser.py        # Parse de arquivos
+│   │       ├── analytics.py     # Análises avançadas
+│   │       └── export.py        # Exportação de dados
+│   │
+│   ├── config/
+│   │   ├── colors.py            # Paleta de cores
+│   │   └── analytics.py         # Funções de análise
+│   │
+│   └── requirements.txt         # Dependências Python
+│
+├── 🎨 FRONTEND (React + Vite)
+│   ├── frontend/
+│   │   ├── src/
+│   │   │   ├── App.tsx          # Root component
+│   │   │   ├── main.tsx         # Entry point
+│   │   │   ├── api/
+│   │   │   │   ├── client.ts    # Axios config
+│   │   │   │   └── analytics.ts # API functions
+│   │   │   ├── store/
+│   │   │   │   └── session.ts   # Zustand state
+│   │   │   ├── components/      # Componentes React
+│   │   │   ├── pages/           # Páginas
+│   │   │   ├── lib/             # Utilitários
+│   │   │   ├── App.css
+│   │   │   └── index.css
+│   │   ├── package.json         # Dependências Node
+│   │   ├── vite.config.ts
+│   │   └── tailwind.config.js
+│
+├── 🧪 STREAMLIT (Análise Rápida)
+│   ├── app.py                   # App principal Streamlit
+│   ├── templates/
+│   │   ├── ui.py                # Componentes UI
+│   │   └── smart_kpi.py         # KPIs inteligentes
+│   ├── theme.css                # CSS tema premium
+│   └── .streamlit/config.toml   # Config Streamlit
+│
+├── run_backend.bat              # Script para rodar FastAPI
+├── run_frontend.bat             # Script para rodar React
+├── run_streamlit.bat            # Script para rodar Streamlit
+├── ARQUITETURA.md               # Documentação técnica
+└── README.md                    # Este arquivo
 ```
 
 ---
 
-**Status:** ✅ 100% Funcional e Testado  
-**Versão:** 1.0 · 2026-04-14  
-**Arquitetura:** Strategy Pattern + Multi-Modelos
-# � Power BI Automático Multi-Modelos
+## 🏃 Como Executar
 
-Dashboard em **Streamlit** com arquitetura modular para múltiplos tipos de análise: Comissões, Vendas, Compras, Despesas, Receitas.
+### ⚡ Opção 1: Streamlit (Recomendado para começar)
+Análise rápida e intuitiva com interface web em tempo real.
 
-## ✨ Funcionalidades
-
-- **🎯 Multi-Modelos**: Escolha o tipo de análise (Comissões, Vendas, etc.)
-- 📤 Upload de dados (CSV/XLSX) com detecção automática
-- 🔄 Normalização inteligente de colunas (com/sem acento)
-- 📊 Agregações por perspectiva (vendedor, filial, item, cliente, período)
-- 📈 Gráficos interativos (Plotly)
-- 🔀 Deduplicação automática de vendas/recebimentos (modelo Comissões)
-- 🎛️ Filtros dinâmicos multi-seleção
-- 📥 Exportação em Excel e CSV
-- ✅ Validação de colunas obrigatórias
-
-## 🏗️ Arquitetura
-
-### Estrutura de Pastas
-
-```
-projeto/
-├── app.py                          # Main app (170 linhas — pura orquestração)
-├── app_backup.py                   # Backup da versão anterior
-│
-├── utils/                          # Funções genéricas reutilizáveis
-│   ├── formatters.py              # fmt_brl, pct_fmt, fmt_date, fmt_int
-│   ├── parsers.py                 # parse_num, smart_date, _get_first_mode
-│   ├── normalizers.py             # normalize_columns, validate_required_columns
-│   ├── deduplicators.py           # add_dedup_flags, get_dedup_subset
-│   ├── file_loader.py             # load_file, to_excel
-│   └── __init__.py                # re-exports
-│
-├── models/                         # Modelos de análise
-│   ├── base_model.py              # Classe abstrata (interface comum)
-│   ├── comissao_model.py          # Modelo: Comissões (refactor)
-│   ├── vendas_model.py            # Modelo: Vendas (exemplo novo)
-│   └── __init__.py
-│
-├── templates/                      # Templates Streamlit reutilizáveis
-│   ├── dashboard_template.py      # render_header, render_kpis, render_filters
-│   ├── export_template.py         # render_export_tab
-│   └── __init__.py
-│
-├── comissoes.csv                   # Tabela de dados de exemplo
-└── README.md
-```
-
-### Fluxo de Execução
-
-```
-Sidebar: Upload arquivo + Selecionar modelo
-    ↓
-Load genérico (detect cols, encoding, separator)
-    ↓
-Instanciar modelo escolhido
-    ↓
-Pipeline: normalize → validate → deduplicate (se necessário)
-    ↓
-Filtros dinâmicos
-    ↓
-Agregações (por_vendedor, por_filial, por_item, etc.)
-    ↓
-KPIs + Charts (delegado ao modelo)
-    ↓
-Exportação genérica (Excel, CSV)
-```
-
-## 🎯 Modelos Disponíveis
-
-### 💰 COMISSÃO (refactor)
-- **Dedup**: Sim (LineTotal, AmountReceived)
-- **Agregações**: 5 (vendedor, filial, item, cliente, mês)
-- **KPIs**: 6 (Vendas, Itens, NFs, Recebido, Comissão, % Médio)
-- **Colunas**: ~25 campos mapeados
-
-### 📈 VENDAS (novo)
-- **Dedup**: Não
-- **Agregações**: 2 (vendedor, cliente)
-- **KPIs**: 3 (Total Vendas, Ticket Médio, Transações)
-- **Colunas**: 6 campos essenciais
-
-## 📋 Modelo Comissões — Colunas Esperadas
-
-### Obrigatórias (REQUIRED_COLS)
-```
-ReceiveDate, InvDocNum, SlpName, ItemCode,
-LineTotal, AmountReceived, CommissionPct, CommissionValue
-```
-
-### Mapeadas (COL_MAP) — Aliases aceitos
-```ini
-[ReceiveDate]
-  - Data do Recebimento, ReceiveDate, Data Recebimento
-
-[SlpName]
-  - Nome do Vendedor, Nome do vendedor, SlpName
-
-[LineTotal]
-  - Valor Total da Linha NF, LineTotal, Valor Linha
-
-[CommissionValue]
-  - Comissao Final, Comissão Final, CommissionValue, Valor Comissão
-
-... e mais 20 campos com múltiplos aliases
-```
-
-## 🚀 Setup & Uso
-
+**Windows:**
 ```bash
-# Clone ou entre no diretório
-cd "Treinin/New folder (2)"
+run_streamlit.bat
+```
+Abrirá em [http://localhost:8501](http://localhost:8501)
 
-# Instale dependências
+**Linux/Mac:**
+```bash
+# Criar venv
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Instalar dependências
 pip install -r requirements.txt
 
-# Run
+# Rodar Streamlit
 streamlit run app.py
 ```
 
-### Requirements.txt
+### 🚀 Opção 2: Full Stack (FastAPI + React)
+Arquitetura profissional com separação frontend/backend.
+
+**Terminal 1 — Backend (FastAPI):**
+```bash
+run_backend.bat
 ```
-streamlit>=1.28
-pandas>=2.0
-numpy>=1.24
-plotly>=5.0
-openpyxl>=3.0
+API disponível em [http://localhost:8000](http://localhost:8000)  
+Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+**Terminal 2 — Frontend (React):**
+```bash
+run_frontend.bat
 ```
+App disponível em [http://localhost:5173](http://localhost:5173)
 
-## 🔄 Padrão de Design
+---
 
-### Strategy Pattern
-- **BaseModel**: Classe abstrata que define interface comum
-- **ComissaoModel**, **VendasModel**, etc.: Implementações específicas
+## 🎨 Design System
 
-### Reutilização
-- **90%+** do código compartilhado
-- Novo modelo = ~30 minutos (vs. horas antes)
-- Sem duplicação de: normalização, formatação, filtros, export
-
-### Extensibilidade
-```python
-# Adicionar novo modelo é trivial:
-from models.base_model import BaseModel
-
-class MeuModel(BaseModel):
-    MODEL_NAME = "MEU_MODELO"
-    COL_MAP = {...}
-    REQUIRED_COLS = [...]
-    
-    def get_kpis(self, df):
-        return [...]
-    
-    def get_aggregations(self, df):
-        return {...}
-    
-    # ... etc
+### Cores (Paleta Escura Premium)
+```css
+Primary: #4f8ef7   (Azul)
+Secondary: #a78bfa (Roxo)
+Success: #34c97e   (Verde)
+Warning: #f5a623   (Laranja)
+Danger: #f87171    (Vermelho)
+Accent: #06b6d4    (Ciano)
+Background: #0f172a (Super escuro)
+Surface: #1e293b   (Card background)
+Text: #e2e8f0      (Branco suave)
 ```
 
-Depois registrar no app.py:
-```python
-MODELS = {
-    "💰 Comissões": ComissaoModel,
-    "📈 Vendas": VendasModel,
-    "🆕 Meu Modelo": MeuModel,
-}
-```
+### Componentes
+- **Smart KPI Cards** — Gradientes + trend badges + animações
+- **Insight Cards** — Alertas contextuais com cores dinâmicas
+- **Gráficos Plotly** — Tema escuro consistente
+- **Transições** — Cubic bezier suave (0.34, 1.56, 0.64, 1)
+- **Shadows** — Glow effects em hover
 
-## 📊 Que Mudou na Refatoração
+---
 
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| **Linhas app.py** | 938 | 170 |
-| **Modelos** | 1 (Comissão) | 2+ (Comissão, Vendas, ...) |
-| **Reutilização** | 0% | 90%+ |
-| **Tempo novo modelo** | N/A | ~30 min |
-| **Testabilidade** | Monolítica | Modular |
-| **Manutenção** | Difícil | Fácil |
+## 📊 Análises Automáticas
 
-## 🐛 Correções & Melhorias
+### Detecção de Schema
+Identifica o tipo de dataset automaticamente:
+- 🛍️ **Vendas** — detecta: vendedor, produto, cliente, quantidade
+- 💰 **Financeiro** — detecta: receita, despesa, lucro, fluxo de caixa
+- ⚙️ **Operações** — detecta: volume, SLA, throughput, operações
+- 👥 **RH** — detecta: funcionário, departamento, salário, contratação
 
-### Versão Refatorada (Agora)
-- ✅ **Arquitetura modular**: Fácil adicionar novos modelos
-- ✅ **Genérica**: COL_MAP, numeric_cols, etc. recebem como parâmetros
-- ✅ **Sem globals hardcoded**: Cada modelo auto-contido
-- ✅ **Reutilização de componentes**: templates, utils, formatters
-- ✅ **Validação centralizada**: validate_required_columns, normalize_columns
+### Qualidade de Dados
+- ✅ Null count e percentual
+- ✅ Unique values
+- ✅ Tipo de dados
+- ✅ Exemplos de valores
+- ⚠️ Flagging de problemas
 
-### Versão Anterior (v6.3)
-- ✅ FIX #1: pd.read_excel com io.BytesIO
-- ✅ FIX #2: Cache data genérico
-- ✅ FIX #3: Tratamento robusto de NaN
-- ✅ FIX #4: Deduplicação inteligente (LineTotal vs AmountReceived)
+### Anomalias
+- Z-score detection (threshold 2.5)
+- IQR method (multiplicador 1.5)
+- Percentual de outliers
+- Alertas visuais em cards
 
-## 📝 Próximos Passos
+---
 
-1. **Testar** com dados reais do comissoes.csv
-2. **Deploy** na Vercel (estrutura já compatível)
-3. **Adicionar** modelos: Compras, Despesas, Receitas
-4. **Customização** avançada: temas por modelo, alertas contextuais
+## 📥 Uso Prático
 
-## 📞 Desenvolvido
+### Streamlit:
+1. Clique em "Carregar Dados" na sidebar
+2. Selecione arquivo (Excel, CSV, JSON, TXT)
+3. Auto-detecta tipos de colunas
+4. Configure filtros (data, numérico, categórico)
+5. Explore em 5 abas temáticas
+6. Exporte resultados em Excel ou CSV
 
-- **Stack**: Python 3.10+, Streamlit, Pandas, Plotly
-- **Versão**: v7.0 (Refatoração Modular)
-- **Última atualização**: 14 de abril de 2026
-- **Autor**: Gabriel Cardoso
+### React Frontend:
+1. Faça upload do arquivo
+2. Visualize dashboard executivo
+3. Explore gráficos por página
+4. Use filtros avançados
+5. Exporte dados
 
-## 📄 Licença
+---
 
-© 2025 Scientific PRD
+## 🔧 Dependências
 
+### Python
+- `streamlit` - Interface web
+- `pandas` - Processamento de dados
+- `plotly` - Gráficos interativos
+- `fastapi` - API REST
+- `uvicorn` - ASGI server
+- `scipy` - Análises estatísticas
+
+### Node.js (Frontend)
+- `react` - UI components
+- `typescript` - Type safety
+- `vite` - Dev server + bundler
+- `plotly.js` - Gráficos
+- `tailwind` - Utilitários CSS
+- `zustand` - State management
+
+---
+
+## 🎯 Roadmap Futuro
+
+- ✅ v2.0 — Dupla arquitetura (Streamlit + React)
+- ⏳ v2.1 — ML predictions e forecasting
+- ⏳ v2.2 — Multi-file consolidation
+- ⏳ v2.3 — Database backend (PostgreSQL)
+- ⏳ v3.0 — Deploy em cloud (Docker + Azure)
+
+---
+
+## 📝 Licença
+
+Projeto aberto para uso educacional e comercial.
+
+---
+
+**Versão:** 2.0.0  
+**Último Update:** Abril 2026  
+**Status:** ✅ Production Ready
+
+### Indicators de Tendência
+- 📈 **Crescimento** — Seta verde + % positivo
+- 📉 **Queda** — Seta vermelha + % negativo
+- → **Estagnado** — Seta cinza + variação ~0%
+
+### Detecção de Anomalias
+- **IQR Method:** Outliers em distribuições numéricas
+- **Z-score:** Anomalias por desvio padrão
+- **Visual Alerts:** Badges na aba Overview
+
+## 🔜 Próximas Fases
+
+### Fase 2 — Smart Insights
+- [ ] Correlações automáticas com narrativa
+- [ ] Sugestões de KPIs por schema
+- [ ] Alertas em tempo real
+
+### Fase 3 — Dashboards Temáticos
+- [ ] `/pages/sales.py` — Funil, ticket médio, top produtos
+- [ ] `/pages/financial.py` — Fluxo de caixa, cash flow
+- [ ] `/pages/ops.py` — SLA, throughput, volume
+
+### Fase 4 — Exportação de Relatório
+- [ ] Gerar PDF com gráficos
+- [ ] Sumário automático
+- [ ] Capa com tema corporativo
+
+## 🔧 Dependências
+
+- **streamlit** — Framework web
+- **pandas** — Manipulação de dados
+- **numpy** — Operações numéricas
+- **plotly** — Gráficos interativos
+- **openpyxl** — Exportação Excel
+
+## 📝 Notas
+
+- ✨ **Performance:** Otimizado até ~100k registros
+- 🔐 **Segurança:** Sem armazenamento de dados (ephemeral)
+- 🎨 **Design:** Tema escuro inspirado em marketing sites modernos
+- 📱 **Responsivo:** Layout adaptável para mobile/tablet
+
+## 👨‍💻 Desenvolvido com ❤️
+Fase 1.5 implementada com foco em UX premium e análises automáticas.

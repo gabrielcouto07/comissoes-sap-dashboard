@@ -116,7 +116,7 @@ def detect_and_parse(df: pd.DataFrame) -> pd.DataFrame:
 def load_file(file_bytes: bytes, filename: str) -> pd.DataFrame | None:
     """
     Carrega Excel (.xlsx/.xls), CSV, TXT delimitado ou JSON.
-    Detecta separador automaticamente em CSV/TXT.
+    Detecta separador e encoding automaticamente em CSV/TXT.
     Normaliza JSON aninhado com json_normalize.
     """
     import io, json
@@ -124,21 +124,34 @@ def load_file(file_bytes: bytes, filename: str) -> pd.DataFrame | None:
     name = filename.lower()
     buf = io.BytesIO(file_bytes)
 
+    def detect_encoding(file_bytes: bytes) -> str:
+        """Detecta encoding do arquivo tentando múltiplas opções"""
+        encodings = ["utf-8", "latin-1", "iso-8859-1", "cp1252", "utf-16"]
+        for enc in encodings:
+            try:
+                file_bytes.decode(enc)
+                return enc
+            except (UnicodeDecodeError, AttributeError):
+                continue
+        return "utf-8"  # Fallback
+
     try:
         if name.endswith((".xlsx", ".xls")):
             df = pd.read_excel(buf)
 
         elif name.endswith(".csv"):
-            sample = buf.read(2048).decode("utf-8", errors="ignore")
+            encoding = detect_encoding(file_bytes)
+            sample = buf.read(2048).decode(encoding, errors="ignore")
             buf.seek(0)
             sep = ";" if sample.count(";") > sample.count(",") else ","
-            df = pd.read_csv(buf, sep=sep, encoding="utf-8", on_bad_lines="skip")
+            df = pd.read_csv(buf, sep=sep, encoding=encoding, on_bad_lines="skip")
 
         elif name.endswith(".txt"):
-            sample = buf.read(2048).decode("utf-8", errors="ignore")
+            encoding = detect_encoding(file_bytes)
+            sample = buf.read(2048).decode(encoding, errors="ignore")
             buf.seek(0)
             sep = "\t" if "\t" in sample else ("|" if "|" in sample else ",")
-            df = pd.read_csv(buf, sep=sep, encoding="utf-8", on_bad_lines="skip")
+            df = pd.read_csv(buf, sep=sep, encoding=encoding, on_bad_lines="skip")
 
         elif name.endswith(".json"):
             raw = json.load(buf)
